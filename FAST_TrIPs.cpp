@@ -1,3 +1,4 @@
+/*-------------------------------------------------------
 FAST-TrIPs: Flexible Assignment and Simulation Tool for Transit and Intermodal Passengers
 Copyright (C) 2013 by Alireza Khani
 Released under the GNU General Public License, version 2.
@@ -21,4 +22,31 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
--------------------------------------------------------
+-------------------------------------------------------*/
+
+#include "ft_stop.h"
+#include "ft_route.h"
+#include "ft_trip.h"
+#include "ft_TAZ.h"
+#include "ft_passenger.h"
+#include "ft_TBSP.h"
+#include "ft_simulation.h"
+#include "ft_assignment.h"
+
+int	main(){
+	srand((unsigned)time(0));
+	cout <<"****************************** READING INPUTS *****************************"<<endl;
+	readParameters();
+	readRouteChoiceModel();
+	cout <<readStops()<<"\t Stops"<<endl;
+	cout <<readTransfers()<<"\t Transfers"<<endl;
+	cout <<readRoutes()<<"\t Routes"<<endl;
+	cout <<readTrips()<<"\t Trips"<<endl;
+	cout <<readStopTimes()<<"\t Stop Times"<<endl;
+	cout <<defineTransferStops()<<"\t Transfer Stops"<<endl;
+	cout <<readTAZs()<<"\t TAZs"<<endl;
+	cout <<readAccessLinks()<<"\t Access Links"<<endl;
+	cout <<readPassengers()<<"\t Passengers"<<endl;
+	passengerAssignment();
+    return 0;
+}
