@@ -34,7 +34,7 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 	int						tmpNumAccess, tmpNumTransfers, tmpSeqNum, tmpMaxSeqNum, tmpResidualCapacity;
 	double					tmpCurrentLabel, tmpCurrentArrival, tmpOldLabel, tmpNewLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
-	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpMode, tmpFromToAt;
+	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpMode;
 	char					chr[99];
 	vector<string>			tokens;
 	list<taz*>::iterator	tmpTazListIter;
@@ -44,6 +44,10 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 	list<trip*>::iterator	tmpTripListIter;
 	trip*					tmpTripPntr;
 	priority_queue<string>	stopQueue;
+
+    //For Available capacity
+    string                  tmpFromToAt;
+    double                  latestTime;
 
 	//Initialization
 	for(tmpTazListIter=tazList.begin();tmpTazListIter!=tazList.end();tmpTazListIter++){
@@ -131,24 +135,25 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 			tmpTripPntr = tripSet[tmpTrip];
 			if (tmpTripPntr->getTripUsedBefore(_threadId)==1){
 				continue;
-			}else{
-                tmpTripPntr->setTripUsedBefore(_threadId);
-            }
+			}
 			tmpResidualCapacity = tmpTripPntr->getResidualCapacity(tmpSeqNum);
 			if(tmpResidualCapacity<1){
 			//	continue;
 			}
             tmpFromToAt = tmpTrip + "," + tmpCurrentStop;
             if(availableCapacity.find(tmpFromToAt)!=availableCapacity.end()){
-                if(availableCapacity[tmpFromToAt]==0){
+                latestTime = availableCapacity[tmpFromToAt];
+                if(tmpCurrentArrival+0.01>=latestTime && tmpMode!=tmpTrip){
                     continue;
                 }
             }
+            tmpTripPntr->setTripUsedBefore(_threadId);
 			tmpMaxSeqNum = tmpTripPntr->getMaxSequence();
 			for(j=tmpSeqNum+1;j<=tmpMaxSeqNum;j++){
 				tmpNewDeparture = tmpTripPntr->getSchDeparture(tmpSeqNum);
 				tmpNewArrival = tmpTripPntr->getSchArrival(j);
 				tmpInVehTime = tmpNewArrival - tmpNewDeparture;
+                tmpWaitingTime = tmpNewDeparture - tmpCurrentArrival;
 				tmpNewLabel = tmpCurrentLabel + tmpInVehTime + tmpWaitingTime;
 				tmpNewStop = tmpTripPntr->getStop(j);
 				tmpOldLabel = stopSet[tmpNewStop]->getLabel(_threadId);
@@ -158,7 +163,7 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 					tmpStr.resize(6-tmpQueuvalue.length(),'0');
 					tmpQueuvalue = tmpStr + tmpQueuvalue + tmpNewStop;
 					stopQueue.push(tmpQueuvalue);
-				}
+ 				}
 			}
 		}
 		numIterations++;
@@ -187,7 +192,7 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 	int						tmpNumAccess, tmpNumTransfers, tmpSeqNum, tmpResidualCapacity;
 	double					tmpCurrentLabel, tmpCurrentDeparture, tmpOldLabel, tmpNewLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
-	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpMode, tmpFromToAt;
+	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpMode;
 	char					chr[99];
 	vector<string>			tokens;
 	list<taz*>::iterator	tmpTazListIter;
@@ -197,6 +202,10 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 	list<trip*>::iterator	tmpTripListIter;
 	trip*					tmpTripPntr;
 	priority_queue<string>	stopQueue;
+
+    //For Available capacity
+    string                  tmpFromToAt;
+    double                  latestTime;
 
 	//Initialization
 	for(tmpTazListIter=tazList.begin();tmpTazListIter!=tazList.end();tmpTazListIter++){
@@ -250,7 +259,6 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 		}else{
 			stopSet[tmpCurrentStop]->setPermanentLabel(1, _threadId);
 		}
-        //tmpFromToAt = tmpMode + "," + tmpCurrentStop;
 
 		//Update by Transfers
 		if(tmpMode.substr(0,1)=="t"){																//To avoid transfer right after access/egress/transfer
@@ -261,7 +269,18 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 				tmpNewLabel = tmpCurrentLabel + tmpTransferTime;
 				tmpOldLabel = stopSet[tmpNewStop]->getLabel(_threadId);
 				tmpNewDeparture = tmpCurrentDeparture - tmpTransferTime;
-				if(tmpNewLabel < tmpOldLabel && tmpNewLabel < 999 && tmpNewLabel > 0){
+
+                tmpFromToAt = tmpMode + "," + tmpCurrentStop;
+                if(availableCapacity.find(tmpFromToAt)!=availableCapacity.end()){
+                    latestTime = availableCapacity[tmpFromToAt];
+                    if(tmpCurrentDeparture-latestTime>_timeBuffer){
+                        continue;
+                    }
+                    tmpNewLabel = tmpNewLabel + tmpCurrentDeparture - latestTime + 5;
+                    tmpNewDeparture = latestTime - tmpTransferTime - 5;
+                }
+
+                if(tmpNewLabel < tmpOldLabel && tmpNewLabel < 999 && tmpNewLabel > 0){
 					stopSet[tmpNewStop]->backwardUpdate(tmpNewLabel, tmpNewDeparture, "Transfer", tmpCurrentStop, _threadId);
 					tmpQueuvalue = itoa(int(999999-tmpNewLabel*1000),chr,10);
 					tmpStr.resize(6-tmpQueuvalue.length(),'0');
@@ -283,28 +302,31 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 			tmpTrip = tokens[i];
 			tmpSeqNum = atoi(tokens[i+1].c_str());
 			tmpTripPntr = tripSet[tmpTrip];
+			tmpNewArrival = tmpTripPntr->getSchArrival(tmpSeqNum);
 			if (tmpTripPntr->getTripUsedBefore(_threadId)==1){
 				continue;
-			}else{
-                tmpTripPntr->setTripUsedBefore(_threadId);
+			}
+
+            tmpFromToAt = tmpMode + "," + tmpCurrentStop;
+            if(availableCapacity.find(tmpFromToAt)!=availableCapacity.end()){
+                latestTime = availableCapacity[tmpFromToAt];
+                if(tmpNewArrival+0.01>=latestTime && tmpMode!=tmpTrip){
+                    continue;
+                }
             }
-			for(j=1;j<tmpSeqNum;j++){
+
+            tmpTripPntr->setTripUsedBefore(_threadId);
+            for(j=max(0,tmpSeqNum-1);j>0;j--){
+			//for(j=1;j<tmpSeqNum;j++){
 				tmpResidualCapacity = tmpTripPntr->getResidualCapacity(j);
 				if(tmpResidualCapacity<1){
-					continue;
+				//	continue;
 				}
                 tmpNewDeparture = tmpTripPntr->getSchDeparture(j);
-				tmpNewArrival = tmpTripPntr->getSchArrival(tmpSeqNum);
 				tmpInVehTime = tmpNewArrival - tmpNewDeparture;
                 tmpWaitingTime = tmpCurrentDeparture - tmpNewArrival;
 				tmpNewLabel = tmpCurrentLabel + tmpInVehTime + tmpWaitingTime ;
 				tmpNewStop = tmpTripPntr->getStop(j);
-                tmpFromToAt = tmpTrip + "," + tmpNewStop;
-                if(availableCapacity.find(tmpFromToAt)!=availableCapacity.end()){
-                    if(availableCapacity[tmpFromToAt]==0){
-                //        continue;
-                    }
-                }
 				tmpOldLabel = stopSet[tmpNewStop]->getLabel(_threadId);
 				if(tmpNewLabel < tmpOldLabel && tmpNewLabel < 999 && tmpNewLabel > 0){
 					stopSet[tmpNewStop]->backwardUpdate(tmpNewLabel, tmpNewDeparture, tmpTrip, tmpCurrentStop, _threadId);
@@ -325,10 +347,21 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
         tmpOldLabel = tmpTazPntr->getLabel(_threadId);
         tmpNewStop = tmpTazPntr->getStop(i);
         tmpAccessTime = tmpTazPntr->getAccessTime(i);
-        tmpNewLabel = stopSet[tmpNewStop]->getLabel(_threadId) + tmpAccessTime;
-        tmpNewDeparture = stopSet[tmpNewStop]->getDeparture(_threadId) - tmpAccessTime;
         tmpMode = stopSet[tmpNewStop]->getDepartureTripId(_threadId);
-        //tmpFromToAt = tmpMode + "," + tmpNewStop;
+        tmpCurrentDeparture = stopSet[tmpNewStop]->getDeparture(_threadId);
+        tmpCurrentLabel = stopSet[tmpNewStop]->getLabel(_threadId);
+        tmpNewLabel = tmpCurrentLabel + tmpAccessTime;
+        tmpNewDeparture = tmpCurrentDeparture - tmpAccessTime;
+
+        tmpFromToAt = tmpMode + "," + tmpNewStop;
+        if(availableCapacity.find(tmpFromToAt)!=availableCapacity.end()){
+            latestTime = availableCapacity[tmpFromToAt];
+            if(tmpCurrentDeparture-latestTime>_timeBuffer){
+                continue;
+            }
+            tmpNewLabel = tmpNewLabel + tmpCurrentDeparture - latestTime + 5;
+            tmpNewDeparture = latestTime - tmpAccessTime - 5;
+        }
         if(tmpMode.substr(0,1)=="t"){
             if(tmpNewLabel < tmpOldLabel){
                 tmpTazPntr->backwardUpdate(tmpNewLabel, tmpNewDeparture, tmpNewStop, _threadId);
@@ -343,6 +376,10 @@ string		getForwardPath(string _origin, string _destination, double _PDT, double 
 	double		tmpStartTime, tmpTransferTime;
 	string		tmpStr, tmpBoardingStops, tmpAlightingStops, tmpTrips, tmpWalkingTimes, tmpPath, tmpDepartureTime;
 	char		chr[99];
+
+    //For Available capacity
+    string      tmpFromToAt;
+    double      latestTime;
 
 	tmpCurrentStop = tazSet[_destination]->getPredecessor(_threadId);
 	if(tmpCurrentStop=="-101"){
@@ -379,7 +416,16 @@ string		getForwardPath(string _origin, string _destination, double _PDT, double 
 			tmpWalkingTimes.append(",");
 			tmpWalkingTimes.append(tmpStr);
 
-			tmpStartTime = tripSet[tmpFirstTrip]->getSchDepartureByStop(tmpFirstStop) - accessTimes[tmpAccessLink];
+            tmpStartTime = tripSet[tmpFirstTrip]->getSchDepartureByStop(tmpFirstStop) - accessTimes[tmpAccessLink];
+            tmpFromToAt = tmpFirstTrip + "," + tmpFirstStop;
+            if(availableCapacity.find(tmpFromToAt)!=availableCapacity.end()){
+                latestTime = availableCapacity[tmpFromToAt];
+                if(latestTime - accessTimes[tmpAccessLink]<=_PDT+0.01){
+                    return "-101";
+                }else{
+                    tmpStartTime = max(_PDT, latestTime - accessTimes[tmpAccessLink] - 5);
+                }
+            }
 
 			tmpIn = itoa(int(100*tmpStartTime),chr,10);											//cout <<tmpIn<<endl;
 			tmpStrLen = tmpIn.length();
@@ -534,19 +580,17 @@ string		getBackwardPath(string _origin, string _destination, double _PDT, double
 	return "-101";
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int	disaggregateDeterministicAssignment(int _timeBuff, int _numThreads){
-	int									k, numThreads, tmpNumPassengers, tmpNumPtahs;
-	clock_t								t_start;
+int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThreads){
+	int									k, numThreads, tmpNumPassengers, tmpNumPaths;
 
 	numThreads = _numThreads;
 	parallelizeStops(numThreads);
 	parallelizeTazs(numThreads);
 	parallelizeTrips(numThreads);
 
-	t_start = clock();
 	cout <<"**************************** GENERATING PATHS ****************************"<<endl;
 	tmpNumPassengers = passengerSet.size();
-	tmpNumPtahs = 0;
+	tmpNumPaths = 0;
 	for(k=0;k<tmpNumPassengers;k++){
 		int					threadId, tmpNumIterations, tmpTourHalf, tmpStatus;
 		string				tmpPassengerId, tmpOriginTaz, tmpDestinationTaz, tmpPath;
@@ -568,9 +612,14 @@ int	disaggregateDeterministicAssignment(int _timeBuff, int _numThreads){
 		if(tmpOriginTaz==tmpDestinationTaz)	continue;
 
 		tmpStatus = passengerPntr->getPassengerStatus();
-        if(tmpStatus==5){
-            tmpNumPtahs++;
-            continue;
+        if(_iter>1){
+            if(tmpStatus==5){
+                tmpNumPaths++;
+                continue;
+            }else{
+                passengerPntr->setAssignedPath("");
+                passengerPntr->setPassengerStatus(-1);
+            }
         }
 		tmpPDT = passengerPntr->getPDT();
 		tmpPAT = passengerPntr->getPAT();
@@ -584,12 +633,12 @@ int	disaggregateDeterministicAssignment(int _timeBuff, int _numThreads){
 		}
 		if(tmpPath!="-101"){
 			passengerPntr->setAssignedPath(tmpPath);
-			tmpNumPtahs++;
+			tmpNumPaths++;
 		}
-		if(k%max(min(tmpNumPassengers/10,1000),10)==0){
-			cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<difftime(clock(),t_start)/CLOCKS_PER_SEC<<endl;
+        if(k%max(min(tmpNumPassengers/10,1000),10)==0){
+			cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<"N/A"<<endl;
 		}
 	}
-    cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<difftime(clock(),t_start)/CLOCKS_PER_SEC<<endl;
-	return tmpNumPtahs;
+    cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<"N/A"<<endl;
+	return tmpNumPaths;
 }

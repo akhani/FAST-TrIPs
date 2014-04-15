@@ -46,8 +46,8 @@ int		initializeSimulatoin(){
 		tmpPassengerPntr = (*tmpPassengerListIter);
 		tmpPassengerStatus = tmpPassengerPntr->getPassengerStatus();
 		tmpPath = tmpPassengerPntr->getAssignedPath();
-		if(tmpPath!=""){
-			tmpPassengerPntr->resetPathInfo();
+        if(tmpPath!=""){
+            tmpPassengerPntr->resetPathInfo();
 			tmpInt = tmpPassengerPntr->initializePath();
 			tmpPassengerPntr->setPassengerStatus(0);
 			noOfPassengers++;
@@ -56,20 +56,21 @@ int		initializeSimulatoin(){
 
 	//availableCapacity.clear();            //May result in passengers flip-floping if clear the available capacities!
                                             //Will converge otherwise, but some shorter paths may become available in larger iterations although bot being used, this is similar to Hyunsoo's example!
-	return noOfPassengers;
+    return noOfPassengers;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
 int		createPassengers(int _t1, int _t2){
 	string								buf, tmpPassengerId, tmpVehicleId;
-	int									tmpStartTime, noOfPassengerCreated;
+	int									tmpPassengerStatus, tmpStartTime, noOfPassengerCreated;
 	map<string,passenger*>::iterator	tmpPassengerIter;
 	passenger*							passengerPntr;
 
 	noOfPassengerCreated = 0;
 	for(tmpPassengerIter=passengerSet.begin();tmpPassengerIter!=passengerSet.end();tmpPassengerIter++){
 		passengerPntr = (*tmpPassengerIter).second;
+        tmpPassengerStatus = passengerPntr->getPassengerStatus();
 		tmpStartTime = 60 * passengerPntr->getStartTime();
-		if (tmpStartTime >= _t1 && tmpStartTime < _t2){
+		if (tmpPassengerStatus==0 && tmpStartTime >= _t1 && tmpStartTime < _t2){
 			passengers2transfer.push_back(passengerPntr);
 			passengerPntr->setPassengerStatus(1);	//walking
 			noOfPassengerCreated++;
@@ -116,14 +117,6 @@ int		transferPassengers(int _t){
 				passengerPntr->setPassengerStatus(2);	//waiting
 				//cout <<"\ttime: "<<_t/60.0<<" Passenger "<<tmpPassengerId<<" was transfered to stop "<<tmpBoardingStop<<endl;
 
-				//check for missing
-//				tmpNextTrip = passengerPntr->getCurrentTripId();
-//				tmpBoardingStop = passengerPntr->getCurrentBoardingStopId();
-//				tmpMissingCase = tripSet[tmpNextTrip]->checkMissing(tmpBoardingStop);
-//				if(tmpMissingCase!=0){
-//					passengerPntr->setPassengerStatus(4);	//missed
-//					//cout <<"\tPassenger "<<tmpPassengerId<<" missed bus #"<<tmpNextTrip<<" at stop "<<tmpBoardingStop<<" at time "<<_t/60.0<<"\tMC: "<<tmpMissingCase<<endl;
-//				}
 				tmpNumPassengersRemoved++;
 			}
 			tmpPassenger2transferIter = passengers2transfer.begin();
@@ -177,6 +170,7 @@ int		boardPassengers(int _t, string _tripId, string _stopId){
 
 	//For Available Capacity Definition
 	string			fromToAt;
+    float			tmpArrivaltime, tmpLatestArrivalTime;
 
 	stop*			tmpStopPntr;
 	trip*			tmpTripPntr;
@@ -201,10 +195,17 @@ int		boardPassengers(int _t, string _tripId, string _stopId){
 					tmpPassengerPntr->setPassengerStatus(4);	//missed
 					//cout <<"\tPassenger "<<tmpPassengerId<<" missed bus #"<<_tripId<<" at stop "<<_stopId<<" at time "<<_t/60.0<<"\tMC: "<<tmpMissingCase<<endl;
 					tmpNoOfMissings = tmpNoOfMissings + 1;
-					fromToAt = tmpPassengerPntr->getLastTripId();
-					fromToAt = /*fromToAt + "," +*/ tmpTripId + "," + _stopId;
-					availableCapacity[fromToAt] = 0;
-                    //cout <<tmpPassengerId<<"\t"<<fromToAt<<"\t"<<availableCapacity.size()<<endl;
+
+					fromToAt = tmpTripId + "," + _stopId;
+					tmpArrivaltime = tmpPassengerPntr->getArrivalTime();
+					if(availableCapacity.find(fromToAt)==availableCapacity.end()){
+						availableCapacity[fromToAt] = tmpArrivaltime;
+					}else{
+						tmpLatestArrivalTime = availableCapacity[fromToAt];
+						if(tmpArrivaltime < tmpLatestArrivalTime){
+							availableCapacity[fromToAt] = tmpArrivaltime;
+						}
+					}
 				}else{
 					tmpTripPntr->addPassenger(tmpPassengerId);
 					tmpPassengerPntr->addBoardingTime(_t/60.0);
@@ -256,22 +257,22 @@ int		calculateDwellTime(int _t, string _tripId, string _stopId){
 	return	tmpDwellTime;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
-int		simulation(){
-	clock_t				t_start;
+long long		simulation(){
 	int					t, tmpOut, tmpEventTime, tmpLastEventTime, numEventsSimulated, minTime, maxTime,
-						numDepartedPassengers, numArrivedPassengers, numCompletedPassengers;
+						numAssignedPassengers, numDepartedPassengers, numArrivedPassengers, numCompletedPassengers, numMissingPassengers;
 	string				buf, tmpEventStr, tmpEventTrip, tmpEventStop, tmpEventType;
+    char                chr[99];
 	vector<string>		tokens;
 	trip*				tripPntr;
 
-	initializeSimulatoin();
-	t_start = clock();
+	numAssignedPassengers = initializeSimulatoin();
 
 	numEventsSimulated = 0;
 	tmpLastEventTime = 0;
 	numDepartedPassengers = 0;
 	numArrivedPassengers = 0;
 	numCompletedPassengers = 0;
+    numMissingPassengers = 0;
 	tmpEventStr = eventList.front();
 	stringstream ss1(tmpEventStr);
 	buf.clear();
@@ -291,9 +292,9 @@ int		simulation(){
 	for(t=minTime;t<=maxTime;t=t+1){
 		if(t%3600==0){
 			numCompletedPassengers = numCompletedPassengers + numArrivedPassengers;
-			if(numDepartedPassengers>0)	cout <<"\t\t"<<numDepartedPassengers<<"\tpassengers departed the origin."<<endl;
-			if(numArrivedPassengers>0)	cout <<"\t\t"<<numArrivedPassengers<<"\tpassengers arrived to the destination."<<endl;
-			cout <<" t = "<<t/3600<<":00\t"<<difftime(clock(),t_start)/CLOCKS_PER_SEC<<endl;
+			//if(numDepartedPassengers>0)	cout <<"\t\t"<<numDepartedPassengers<<"\tpassengers departed the origin."<<endl;
+			//if(numArrivedPassengers>0)	cout <<"\t\t"<<numArrivedPassengers<<"\tpassengers arrived to the destination."<<endl;
+			cout <<" t = "<<t/3600<<":00\ttime elapsed: "<<"N/A"<<endl;
 			numDepartedPassengers = 0;
 			numArrivedPassengers = 0;
 			tmpOut = createPassengers(t, t+3600);
@@ -323,6 +324,7 @@ int		simulation(){
 					alightPassengers(tmpEventTime, tmpEventTrip, tmpEventStop);
 				}else if(tmpEventType=="d"){
 					tmpOut = boardPassengers(tmpEventTime, tmpEventTrip, tmpEventStop);
+                    numMissingPassengers = numMissingPassengers + tmpOut;
 					calculateDwellTime(tmpEventTime, tmpEventTrip, tmpEventStop);
 				}else{
 					cout <<"Error - Incorrect Event Type!"<<endl;
@@ -335,7 +337,7 @@ int		simulation(){
 				numEventsSimulated++;
 			}else if(tmpEventTime < tmpLastEventTime){
 				numCompletedPassengers = numCompletedPassengers + numArrivedPassengers;
-				return	numCompletedPassengers;
+                return	numCompletedPassengers;
 			}else{
 				if((t+1)%3600!=1){
 					t = max(t, min(tmpEventTime-1,3600*(t/3600)+3599));
@@ -434,7 +436,7 @@ int		printPassengerTimes(){
 			tmpExperiencedPath = tmpPassengerPntr->getExperiencedPath();
 			tmpPassengerPntr->calculateExperiencedCost();
 			tmpTravelCost = tmpPassengerPntr->getExperiencedCost();
-			outFile2 <<tmpExperiencedPath<<"\t"<<floor(100*tmpTravelCost)/100.0<<endl;
+			outFile2 <<tmpExperiencedPath.substr(1,99)<<"\t"<<floor(100*tmpTravelCost)/100.0<<endl;
 			noOfPassengers++;
 		}
 	}

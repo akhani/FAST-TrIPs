@@ -181,7 +181,7 @@ int			readExistingPaths(){
 		tmpNumPaths++;
 	}
 	inFile.close();
-	return passengerSet.size();
+	return tmpNumPaths;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 void		passenger::initializePassenger(string _tmpIn){
@@ -247,7 +247,6 @@ int			passenger::getMode(){
 }
 void		passenger::setAssignedPath(string _tmpPath){
 	assignedPath = _tmpPath;
-	//passengerStatus = 0;
 }
 string		passenger::getAssignedPath(){
 	return this->assignedPath;

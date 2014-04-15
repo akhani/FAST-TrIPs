@@ -36,7 +36,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 using namespace std;
 double		inVehTimeEqv, waitingEqv, originWalkEqv, destinationWalkEqv, transferWalkEqv, transferPenalty, scheduleDelayEqv, fare, VOT, theta, capacityConstraint;
-map<string,int>		availableCapacity;
+map<string,double>		availableCapacity;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 class	stop{
 protected:

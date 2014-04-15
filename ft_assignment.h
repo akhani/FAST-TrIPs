@@ -27,8 +27,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int		multithreadingFlag,		//{1, 2, ...}
-		pathModelFlag,			//{0, 1, 2, 8, 9}
+int		iterationFlag,	    	//{1, 2, ...}
+		pathModelFlag,			//{0, 1}
 		printPassengersFlag,	//{0, 1}
 		simulationFlag,			//{0, 1}
 		pathTimeBuffer,			//[15, 60]
@@ -59,15 +59,15 @@ void	readParameters(){
 		}
 	}
 
-	multithreadingFlag = atoi(tokens[0].c_str());
-	if(multithreadingFlag<1 || multithreadingFlag>8){
-		cout <<"ERROR - # OF THREADS SHOULD BE AT LEAST 1 AND MAY NOT BE MORE THAN 8 OR THE NUMBER OF CORES"<<endl;
+	iterationFlag = atoi(tokens[0].c_str());
+	if(iterationFlag<1){
+		cout <<"ERROR - # OF ITERATION SHOULD BE A POSITIVE VALUE"<<endl;
 		exit(1);
 	}
 
 	pathModelFlag = atoi(tokens[1].c_str());
-	if (pathModelFlag!=0 && pathModelFlag!=1 && pathModelFlag!=2 && pathModelFlag!=2 && pathModelFlag!=8 && pathModelFlag!=9){
-		cout <<"ERROR - PATH MODEL PARAMETER SHOULD BE EITHER 0, 1, 2, 8, OR 9"<<endl;
+	if (pathModelFlag!=0 && pathModelFlag!=1){
+		cout <<"ERROR - PATH MODEL PARAMETER SHOULD BE EITHER 0 or 1"<<endl;
 		exit(1);
 	}
 
@@ -164,52 +164,48 @@ void	readRouteChoiceModel(){
 void		passengerAssignment(){
 	string				tmpIn, buf;
 	vector<string>		tokens;
-	int					numAssignedPassengers, numArrivedPassengers;
-	double				tmpAssignmentTime, tmpSimulationTime;
-	clock_t				t_start, t_end;
+	int					numAssignedPassengers, numArrivedPassengers, numMissedPassengers;
+	double				capacityGap, tmpAssignmentTime, tmpSimulationTime;
 
 	ofstream		outFile;
 	outFile.open("ft_output_runStatistics.dat");
 	outFile <<"******************************* SUMMARY ****************************************"<<endl;
 
-    for(int i=1;i<=20;i++){
-        cout <<"***************************** ITERATION "<<i<<" **************************************"<<endl;
-        outFile <<"***************************** ITERATION "<<i<<" **************************************"<<endl;
+	for(int iter=1;iter<=iterationFlag;iter++){
+        cout <<"***************************** ITERATION "<<iter<<" **************************************"<<endl;
+        outFile <<"***************************** ITERATION "<<iter<<" **************************************"<<endl;
 
-        t_start = clock();
         if(pathModelFlag == 0){
             readExistingPaths();
         }else if(pathModelFlag==1){
-            numAssignedPassengers = disaggregateDeterministicAssignment(pathTimeBuffer, 1);
+            numAssignedPassengers = disaggregateDeterministicAssignment(iter, pathTimeBuffer, 1);
         }
-        t_end = clock();
-        tmpAssignmentTime = difftime(t_end,t_start)/CLOCKS_PER_SEC;
 
         if(simulationFlag==1){
             cout <<"****************************** SIMULATING *****************************"<<endl;
-            t_start = clock();
             numArrivedPassengers = simulation();
-            t_end = clock();
-            tmpSimulationTime = difftime(t_end,t_start)/CLOCKS_PER_SEC;
+            numMissedPassengers = numAssignedPassengers - numArrivedPassengers;
         }
 
-        outFile <<"\t\t\tASSIGNED PASSENGERS:\t\t"<<numAssignedPassengers<<endl;
+        if(printPassengersFlag==1){
+            printPassengerPaths();
+            printPassengerTimes();
+        }
+
+        capacityGap = 100.0*numMissedPassengers/(numArrivedPassengers+numMissedPassengers);
+
+        outFile <<"\t\t\tTOTAL ASSIGNED PASSENGERS:\t"<<numArrivedPassengers+numMissedPassengers<<endl;
         outFile <<"\t\t\tARRIVED PASSENGERS:\t\t\t"<<numArrivedPassengers<<endl;
-        outFile <<"\t\t\tASSIGNMENT TIME(MIN):\t\t"<<tmpAssignmentTime/60<<endl;
-        outFile <<"\t\t\tSIMULATION TIME(MIN):\t\t"<<tmpSimulationTime/60<<endl;
-        outFile <<"\t\t\tTOTAL RUN TIME(MIN):\t\t"<<(tmpAssignmentTime+tmpSimulationTime)/60<<endl;
+        outFile <<"\t\t\tMISSED PASSENGERS:\t\t\t"<<numMissedPassengers<<endl;
+        outFile <<"\t\t\tCAPACITY GAP:\t\t\t\t"<<capacityGap<<endl;
 
-        if(numArrivedPassengers==numAssignedPassengers){
-            break;
-        }
+		if(capacityGap<0.001){
+			break;
+		}
     }
 
     cout <<"**************************** WRITING OUTPUTS ****************************"<<endl;
     printLoadProfile();
-    if(printPassengersFlag==1){
-        printPassengerPaths();
-        printPassengerTimes();
-    }
 
 	outFile <<"************************************* END **************************************"<<endl;
 	outFile.close();
