@@ -396,39 +396,50 @@ string		passenger::getExperiencedPath(){
 			tmpBoardingTimes.append(",");
 			tmpAlightingTimes.append(",");
 		}
-		tmpArrivalTimes.append(itoa(int(100*experiencedArrivalTimes[i])/100,chr,10));
+        sprintf(chr,"%d",int(100*experiencedArrivalTimes[i])/100);
+        tmpArrivalTimes.append(string(chr));
 		tmpArrivalTimes.append(".");
 		if(int(100*experiencedArrivalTimes[i])%100<10)	tmpArrivalTimes.append("0");
-		tmpArrivalTimes.append(itoa(int(100*experiencedArrivalTimes[i])%100,chr,10));
+        sprintf(chr,"%d",int(100*experiencedArrivalTimes[i])%100);
+        tmpArrivalTimes.append(string(chr));
 
-		tmpBoardingTimes.append(itoa(int(100*experiencedBoardingTimes[i])/100,chr,10));
-		tmpBoardingTimes.append(".");
+		sprintf(chr,"%d",int(100*experiencedBoardingTimes[i])/100);
+        tmpBoardingTimes.append(string(chr));
+        tmpBoardingTimes.append(".");
 		if(int(100*experiencedBoardingTimes[i])%100<10)	tmpBoardingTimes.append("0");
-		tmpBoardingTimes.append(itoa(int(100*experiencedBoardingTimes[i])%100,chr,10));
+        sprintf(chr,"%d",int(100*experiencedBoardingTimes[i])%100);
+		tmpBoardingTimes.append(string(chr));
 
-		tmpAlightingTimes.append(itoa(int(100*experiencedAlightingTimes[i])/100,chr,10));
-		tmpAlightingTimes.append(".");
+		sprintf(chr,"%d",int(100*experiencedAlightingTimes[i])/100);
+        tmpAlightingTimes.append(string(chr));
+        tmpAlightingTimes.append(".");
 		if(int(100*experiencedAlightingTimes[i])%100<10)	tmpAlightingTimes.append("0");
-		tmpAlightingTimes.append(itoa(int(100*experiencedAlightingTimes[i])%100,chr,10));
-	}
+		sprintf(chr,"%d",int(100*experiencedAlightingTimes[i])%100);
+        tmpAlightingTimes.append(string(chr));
+    }
 	tmpExperiencedPath = passengerId;
 	tmpExperiencedPath.append("\t");
-	tmpExperiencedPath.append(itoa(passengerMode,chr,10));
+    sprintf(chr,"%d",passengerMode);
+    tmpExperiencedPath.append(string(chr));
 	tmpExperiencedPath.append("\t");
 	tmpExperiencedPath.append(passengerOriginTAZ.substr(1,99));
 	tmpExperiencedPath.append("\t");
 	tmpExperiencedPath.append(passengerDestinationTAZ.substr(1,99));
 	tmpExperiencedPath.append("\t");
-	tmpExperiencedPath.append(itoa(int(100*startTime)/100,chr,10));
-	tmpExperiencedPath.append(".");
+    sprintf(chr,"%d",int(100*startTime)/100);
+	tmpExperiencedPath.append(string(chr));
+    tmpExperiencedPath.append(".");
 	if(int(100*startTime)%100<10)	tmpExperiencedPath.append("0");
-	tmpExperiencedPath.append(itoa(int(100*startTime)%100,chr,10));
-	tmpExperiencedPath.append("\t");
-	tmpExperiencedPath.append(itoa(int(100*endTime)/100,chr,10));
-	tmpExperiencedPath.append(".");
+    sprintf(chr,"%d",int(100*startTime)%100);
+	tmpExperiencedPath.append(string(chr));
+    tmpExperiencedPath.append("\t");
+    sprintf(chr,"%d",int(100*endTime)/100);
+	tmpExperiencedPath.append(string(chr));
+    tmpExperiencedPath.append(".");
 	if(int(100*endTime)%100<10)	tmpExperiencedPath.append("0");
-	tmpExperiencedPath.append(itoa(int(100*endTime)%100,chr,10));
-	tmpExperiencedPath.append("\t");
+    sprintf(chr,"%d",int(100*endTime)%100);
+	tmpExperiencedPath.append(string(chr));
+    tmpExperiencedPath.append("\t");
 	tmpExperiencedPath.append(tmpArrivalTimes);
 	tmpExperiencedPath.append("\t");
 	tmpExperiencedPath.append(tmpBoardingTimes);

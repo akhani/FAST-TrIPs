@@ -81,18 +81,18 @@ int		createPassengers(int _t1, int _t2){
 //////////////////////////////////////////////////////////////////////////////////////////////
 int		transferPassengers(int _t){
 	string							tmpIn, tmpPassengerId, tmpBoardingStop, tmpNextTrip, tmpExperiencedPath;
-	int								tmpPassCntr, tmpNoOfPassengetrs, tmpAlightingTime, tmpWalkingTime,
+	int								tmpPassCntr, tmpNoOfPassengers, tmpAlightingTime, tmpWalkingTime,
 									tmpMissingCase, tmpNumPassengersArrived, tmpNumPassengersRemoved;
 	list<passenger*>::iterator		tmpPassenger2transferIter;
 	passenger*						passengerPntr;
 
-	tmpNoOfPassengetrs = passengers2transfer.size();
+	tmpNoOfPassengers = passengers2transfer.size();
 	tmpPassenger2transferIter = passengers2transfer.begin();
 	tmpNumPassengersArrived = 0;
 	tmpNumPassengersRemoved = 0;
 	tmpMissingCase = 0;
 
-	for(tmpPassCntr=1;tmpPassCntr<=tmpNoOfPassengetrs;tmpPassCntr++){
+	for(tmpPassCntr=1;tmpPassCntr<=tmpNoOfPassengers;tmpPassCntr++){
 		passengerPntr = NULL;
 		passengerPntr = *tmpPassenger2transferIter;
 		tmpPassengerId = passengerPntr->getPassengerId();
@@ -109,7 +109,6 @@ int		transferPassengers(int _t){
 				//cout <<"\ttime: "<<_t/60.0<<" Passenger "<<tmpPassengerId<<" arrieved at destination."<<endl;
 				tmpNumPassengersRemoved++;
 				tmpNumPassengersArrived++;
-				tmpExperiencedPath = passengerPntr->getExperiencedPath();
 			}else{
 				stopSet[tmpBoardingStop]->addPassenger(tmpPassengerId);
 				passengers2transfer.remove(passengerPntr);
@@ -257,96 +256,57 @@ int		calculateDwellTime(int _t, string _tripId, string _stopId){
 	return	tmpDwellTime;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
-long long		simulation(){
-	int					t, tmpOut, tmpEventTime, tmpLastEventTime, numEventsSimulated, minTime, maxTime,
-						numAssignedPassengers, numDepartedPassengers, numArrivedPassengers, numCompletedPassengers, numMissingPassengers;
+int		simulation(){
+	int					counter, maxEvent, tmpOut, tmpEventTime, numAssignedPassengers, numArrivedPassengers, numMissedPassengers;
 	string				buf, tmpEventStr, tmpEventTrip, tmpEventStop, tmpEventType;
+    double              startTime, endTime, cpuTime;
     char                chr[99];
 	vector<string>		tokens;
 	trip*				tripPntr;
 
 	numAssignedPassengers = initializeSimulatoin();
-
-	numEventsSimulated = 0;
-	tmpLastEventTime = 0;
-	numDepartedPassengers = 0;
 	numArrivedPassengers = 0;
-	numCompletedPassengers = 0;
-    numMissingPassengers = 0;
-	tmpEventStr = eventList.front();
-	stringstream ss1(tmpEventStr);
-	buf.clear();
-	tokens.clear();
-	if (getline(ss1, buf, ',')){
-		tokens.push_back(buf);
-	}
-	minTime = 3600*((atoi(tokens[0].c_str())-1800)/3600);
-	tmpEventStr = eventList.back();
-	stringstream ss2(tmpEventStr);
-	buf.clear();
-	tokens.clear();
-	if (getline(ss2, buf, ',')){
-		tokens.push_back(buf);
-	}
-	maxTime = 3600*((atoi(tokens[0].c_str())+1800)/3600) + 3600;
-	for(t=minTime;t<=maxTime;t=t+1){
-		if(t%3600==0){
-			numCompletedPassengers = numCompletedPassengers + numArrivedPassengers;
-			//if(numDepartedPassengers>0)	cout <<"\t\t"<<numDepartedPassengers<<"\tpassengers departed the origin."<<endl;
-			//if(numArrivedPassengers>0)	cout <<"\t\t"<<numArrivedPassengers<<"\tpassengers arrived to the destination."<<endl;
-			cout <<" t = "<<t/3600<<":00\ttime elapsed: "<<"N/A"<<endl;
-			numDepartedPassengers = 0;
-			numArrivedPassengers = 0;
-			tmpOut = createPassengers(t, t+3600);
-			numDepartedPassengers = numDepartedPassengers + tmpOut;
-		}
-		tmpOut = transferPassengers(t);
-		numArrivedPassengers = numArrivedPassengers + tmpOut;
-		while(eventList.size() > 0){
-			tmpEventStr = eventList.front();
-			stringstream ss(tmpEventStr);
-			buf.clear();
-			tokens.clear();
-			while (getline(ss, buf, ',')){
-				tokens.push_back(buf);
-			}
-			tmpEventTime = atoi(tokens[0].c_str());
-			if(tmpEventTime == t){
-				eventList.pop_front();
-				eventList.push_back(tmpEventStr);
-				tmpLastEventTime = tmpEventTime;
-				tmpEventType = tokens[1];	//FNS
-				tmpEventTrip = tokens[2];
-				tmpEventStop = tokens[3];
-				tripPntr = tripSet[tmpEventTrip];
+	numMissedPassengers = 0;
 
-				if(tmpEventType=="a"){
-					alightPassengers(tmpEventTime, tmpEventTrip, tmpEventStop);
-				}else if(tmpEventType=="d"){
-					tmpOut = boardPassengers(tmpEventTime, tmpEventTrip, tmpEventStop);
-                    numMissingPassengers = numMissingPassengers + tmpOut;
-					calculateDwellTime(tmpEventTime, tmpEventTrip, tmpEventStop);
-				}else{
-					cout <<"Error - Incorrect Event Type!"<<endl;
-				}
-
-				if(passengers2transfer.size()>0){
-					tmpOut = transferPassengers(t);
-					numArrivedPassengers = numArrivedPassengers + tmpOut;
-				}
-				numEventsSimulated++;
-			}else if(tmpEventTime < tmpLastEventTime){
-				numCompletedPassengers = numCompletedPassengers + numArrivedPassengers;
-                return	numCompletedPassengers;
-			}else{
-				if((t+1)%3600!=1){
-					t = max(t, min(tmpEventTime-1,3600*(t/3600)+3599));
-				}
-				break;
-			}
-		}
-	}
-	return	numCompletedPassengers;
+    startTime = clock()*1.0/CLOCKS_PER_SEC;
+    tmpOut = createPassengers(0, 24*3600);
+    maxEvent = eventList.size();
+    for(counter=0;counter<maxEvent;counter++){
+        if (counter>0 && counter%10000==0){
+            endTime = clock()*1.0/CLOCKS_PER_SEC;
+            cpuTime = round(100 * (endTime - startTime))/100.0;
+            cout <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
+        }
+        tmpEventStr = eventList.front();
+        stringstream ss(tmpEventStr);
+        buf.clear();
+        tokens.clear();
+        while (getline(ss, buf, ',')){
+            tokens.push_back(buf);
+        }
+        tmpEventTime = atoi(tokens[0].c_str());
+        tmpEventType = tokens[1];
+        tmpEventTrip = tokens[2];
+        tmpEventStop = tokens[3];
+        tripPntr = tripSet[tmpEventTrip];
+        if(tmpEventType=="a"){
+            alightPassengers(tmpEventTime, tmpEventTrip, tmpEventStop);
+        }else if(tmpEventType=="d"){
+            if(passengers2transfer.size()>0){
+                tmpOut = transferPassengers(tmpEventTime);
+                numArrivedPassengers = numArrivedPassengers + tmpOut;
+            }
+            tmpOut = boardPassengers(tmpEventTime, tmpEventTrip, tmpEventStop);
+            numMissedPassengers = numMissedPassengers + tmpOut;
+            calculateDwellTime(tmpEventTime, tmpEventTrip, tmpEventStop);
+        }
+        eventList.pop_front();
+        eventList.push_back(tmpEventStr);
+    }
+    endTime = clock()*1.0/CLOCKS_PER_SEC;
+    cpuTime = round(100 * (endTime - startTime))/100.0;
+    cout <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
+    return	numArrivedPassengers;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
 int		printLoadProfile(){

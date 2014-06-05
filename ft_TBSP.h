@@ -78,8 +78,9 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 		tmpNewLabel = tmpAccessTime;
 		tmpNewArrival = _PDT + tmpAccessTime;
 		stopSet[tmpNewStop]->forwardUpdate(tmpNewLabel, tmpNewArrival, "Access", _origin, _threadId);
-		tmpQueuvalue = itoa(int(999999-tmpNewLabel*1000),chr,10);
-		tmpStr.resize(6-tmpQueuvalue.length(),'0');
+		sprintf(chr,"%d",int(999999-tmpNewLabel*1000));
+        tmpQueuvalue = string(chr);
+        tmpStr.resize(6-tmpQueuvalue.length(),'0');
 		tmpQueuvalue = tmpStr + tmpQueuvalue + tmpNewStop;
 		stopQueue.push(tmpQueuvalue);
 	}
@@ -113,8 +114,9 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 				if(tmpNewLabel < tmpOldLabel && tmpNewLabel < 999 && tmpNewLabel > 0){
 					tmpNewArrival = tmpStopPntr->getArrival(_threadId) + tmpTransferTime;
 					stopSet[tmpNewStop]->forwardUpdate(tmpNewLabel, tmpNewArrival, "Transfer", tmpCurrentStop, _threadId);
-					tmpQueuvalue = itoa(int(999999-tmpNewLabel*1000),chr,10);
-					tmpStr.resize(6-tmpQueuvalue.length(),'0');
+					sprintf(chr,"%d",int(999999-tmpNewLabel*1000));
+                    tmpQueuvalue = string(chr);
+                    tmpStr.resize(6-tmpQueuvalue.length(),'0');
 					tmpQueuvalue = tmpStr + tmpQueuvalue + tmpNewStop;
 					stopQueue.push(tmpQueuvalue);
 				}
@@ -159,7 +161,8 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 				tmpOldLabel = stopSet[tmpNewStop]->getLabel(_threadId);
 				if(tmpNewLabel < tmpOldLabel && tmpNewLabel < 999 && tmpNewLabel > 0){
 					stopSet[tmpNewStop]->forwardUpdate(tmpNewLabel, tmpNewArrival, tmpTrip, tmpCurrentStop, _threadId);
-					tmpQueuvalue = itoa(int(999999-tmpNewLabel*1000),chr,10);
+                    sprintf(chr,"%d",int(999999-tmpNewLabel*1000));
+                    tmpQueuvalue = string(chr);
 					tmpStr.resize(6-tmpQueuvalue.length(),'0');
 					tmpQueuvalue = tmpStr + tmpQueuvalue + tmpNewStop;
 					stopQueue.push(tmpQueuvalue);
@@ -236,8 +239,9 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 		tmpNewLabel = tmpAccessTime;
 		tmpNewDeparture = _PAT - tmpAccessTime;
 		stopSet[tmpNewStop]->backwardUpdate(tmpNewLabel, tmpNewDeparture, "Egress", _destination, _threadId);
-		tmpQueuvalue = itoa(int(999999-tmpNewLabel*1000),chr,10);
-		tmpStr.resize(6-tmpQueuvalue.length(),'0');
+		sprintf(chr,"%d",int(999999-tmpNewLabel*1000));
+        tmpQueuvalue = string(chr);
+        tmpStr.resize(6-tmpQueuvalue.length(),'0');
 		tmpQueuvalue = tmpStr + tmpQueuvalue + tmpNewStop;
 		stopQueue.push(tmpQueuvalue);
 	}
@@ -282,8 +286,9 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 
                 if(tmpNewLabel < tmpOldLabel && tmpNewLabel < 999 && tmpNewLabel > 0){
 					stopSet[tmpNewStop]->backwardUpdate(tmpNewLabel, tmpNewDeparture, "Transfer", tmpCurrentStop, _threadId);
-					tmpQueuvalue = itoa(int(999999-tmpNewLabel*1000),chr,10);
-					tmpStr.resize(6-tmpQueuvalue.length(),'0');
+					sprintf(chr,"%d",int(999999-tmpNewLabel*1000));
+                    tmpQueuvalue = string(chr);
+                    tmpStr.resize(6-tmpQueuvalue.length(),'0');
 					tmpQueuvalue = tmpStr + tmpQueuvalue + tmpNewStop;
 					stopQueue.push(tmpQueuvalue);
 				}
@@ -330,8 +335,9 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 				tmpOldLabel = stopSet[tmpNewStop]->getLabel(_threadId);
 				if(tmpNewLabel < tmpOldLabel && tmpNewLabel < 999 && tmpNewLabel > 0){
 					stopSet[tmpNewStop]->backwardUpdate(tmpNewLabel, tmpNewDeparture, tmpTrip, tmpCurrentStop, _threadId);
-					tmpQueuvalue = itoa(int(999999-tmpNewLabel*1000),chr,10);
-					tmpStr.resize(6-tmpQueuvalue.length(),'0');
+					sprintf(chr,"%d",int(999999-tmpNewLabel*1000));
+                    tmpQueuvalue = string(chr);
+                    tmpStr.resize(6-tmpQueuvalue.length(),'0');
 					tmpQueuvalue = tmpStr + tmpQueuvalue + tmpNewStop;
 					stopQueue.push(tmpQueuvalue);
 				}
@@ -391,7 +397,8 @@ string		getForwardPath(string _origin, string _destination, double _PDT, double 
 	}
 
 	tmpAccessLink = _destination + "," + tmpCurrentStop;
-	tmpIn = itoa(int(100*accessTimes[tmpAccessLink]),chr,10);											//cout <<tmpIn<<endl;
+    sprintf(chr,"%d",int(100*accessTimes[tmpAccessLink]));
+    tmpIn = string(chr);
 	tmpStrLen = tmpIn.length();
 	tmpWalkingTimes = tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 	if(tmpStrLen<2)				tmpWalkingTimes = tmpWalkingTimes + "0";
@@ -408,7 +415,8 @@ string		getForwardPath(string _origin, string _destination, double _PDT, double 
 			}
 			tmpStr = tmpWalkingTimes;
 			tmpAccessLink = tmpNewStop + "," + tmpCurrentStop;
-			tmpIn = itoa(int(100*accessTimes[tmpAccessLink]),chr,10);											//cout <<tmpIn<<endl;
+            sprintf(chr,"%d",int(100*accessTimes[tmpAccessLink]));
+            tmpIn = string(chr);
 			tmpStrLen = tmpIn.length();
 			tmpWalkingTimes = tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 			if(tmpStrLen<2)				tmpWalkingTimes = tmpWalkingTimes + "0";
@@ -427,7 +435,8 @@ string		getForwardPath(string _origin, string _destination, double _PDT, double 
                 }
             }
 
-			tmpIn = itoa(int(100*tmpStartTime),chr,10);											//cout <<tmpIn<<endl;
+            sprintf(chr,"%d",int(100*tmpStartTime));
+            tmpIn = string(chr);
 			tmpStrLen = tmpIn.length();
 			tmpPath = tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 			if(tmpStrLen<2)				tmpPath = tmpPath + "0";
@@ -446,7 +455,8 @@ string		getForwardPath(string _origin, string _destination, double _PDT, double 
 			tmpTransferLink = tmpNewStop + "," + tmpCurrentStop;
 
 			tmpStr = tmpWalkingTimes;
-			tmpIn = itoa(int(100*transferTimes[tmpTransferLink]),chr,10);											//cout <<tmpIn<<endl;
+            sprintf(chr,"%d",int(100*transferTimes[tmpTransferLink]));
+            tmpIn = string(chr);
 			tmpStrLen = tmpIn.length();
 			tmpWalkingTimes = tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 			if(tmpStrLen<2)				tmpWalkingTimes = tmpWalkingTimes + "0";
@@ -505,14 +515,16 @@ string		getBackwardPath(string _origin, string _destination, double _PDT, double
 	tmpCurrentTrip = stopSet[tmpCurrentStop]->getDepartureTripId(_threadId);
 	tmpStartTime = tazSet[_origin]->getDeparture(_threadId);
 
-	tmpIn = itoa(int(100*tmpStartTime),chr,10);
+    sprintf(chr,"%d",int(100*tmpStartTime));
+    tmpIn = string(chr);
 	tmpStrLen = tmpIn.length();
 	tmpPath = tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 	if(tmpStrLen<2)			tmpPath = tmpPath + "0";
 	tmpPath = tmpPath + tmpIn.substr(max(0,tmpStrLen-2),2);
 
 	tmpAccessLink = _origin + "," + tmpCurrentStop;
-	tmpIn = itoa(int(100*accessTimes[tmpAccessLink]),chr,10);
+    sprintf(chr,"%d",int(100*accessTimes[tmpAccessLink]));
+    tmpIn = string(chr);
 	tmpStrLen = tmpIn.length();
 	tmpWalkingTimes = tmpWalkingTimes + tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 	if(tmpStrLen<2)			tmpWalkingTimes = tmpWalkingTimes + "0";
@@ -527,7 +539,8 @@ string		getBackwardPath(string _origin, string _destination, double _PDT, double
 			}
 			tmpNewStop = stopSet[tmpCurrentStop]->getSuccessor(_threadId);
 			tmpAccessLink = tmpNewStop + "," + tmpCurrentStop;
-			tmpIn = itoa(int(100*accessTimes[tmpAccessLink]),chr,10);											//cout <<tmpIn<<endl;
+            sprintf(chr,"%d",int(100*accessTimes[tmpAccessLink]));
+            tmpIn = string(chr);
 			tmpStrLen = tmpIn.length();
 			tmpWalkingTimes = tmpWalkingTimes + "," + tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 			if(tmpStrLen<2)			tmpWalkingTimes = tmpWalkingTimes + "0";
@@ -546,7 +559,8 @@ string		getBackwardPath(string _origin, string _destination, double _PDT, double
 			tmpNewStop = stopSet[tmpCurrentStop]->getSuccessor(_threadId);
 			tmpTransferLink = tmpCurrentStop + "," + tmpNewStop;
 
-			tmpIn = itoa(int(100*transferTimes[tmpTransferLink]),chr,10);											//cout <<tmpIn<<endl;
+            sprintf(chr,"%d",int(100*transferTimes[tmpTransferLink]));
+            tmpIn = string(chr);
 			tmpStrLen = tmpIn.length();
 			tmpWalkingTimes = tmpWalkingTimes + "," + tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 			if(tmpStrLen<2)			tmpWalkingTimes = tmpWalkingTimes + "0";
@@ -581,7 +595,8 @@ string		getBackwardPath(string _origin, string _destination, double _PDT, double
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThreads){
-	int									k, numThreads, tmpNumPassengers, tmpNumPaths;
+	int								k, numThreads, tmpNumPassengers, tmpNumPaths;
+    double                          startTime, endTime, cpuTime;
 
 	numThreads = _numThreads;
 	parallelizeStops(numThreads);
@@ -591,6 +606,7 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
 	cout <<"**************************** GENERATING PATHS ****************************"<<endl;
 	tmpNumPassengers = passengerSet.size();
 	tmpNumPaths = 0;
+    startTime = clock()*1.0/CLOCKS_PER_SEC;
 	for(k=0;k<tmpNumPassengers;k++){
 		int					threadId, tmpNumIterations, tmpTourHalf, tmpStatus;
 		string				tmpPassengerId, tmpOriginTaz, tmpDestinationTaz, tmpPath;
@@ -636,9 +652,13 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
 			tmpNumPaths++;
 		}
         if(k%max(min(tmpNumPassengers/10,1000),10)==0){
-			cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<"N/A"<<endl;
+            endTime = clock()*1.0/CLOCKS_PER_SEC;
+            cpuTime = round(100 * (endTime - startTime))/100.0;
+			cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
 		}
 	}
-    cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<"N/A"<<endl;
+    endTime = clock()*1.0/CLOCKS_PER_SEC;
+    cpuTime = round(100 * (endTime - startTime))/100.0;
+    cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
 	return tmpNumPaths;
 }

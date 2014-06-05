@@ -199,15 +199,17 @@ int		readStopTimes(){
 		//For Simulation
 		tmpTime = atof(tokens[1].c_str());
 		tmpTime = 3600*(int(tmpTime)/10000) + 60*((int(tmpTime)%10000)/100) + int(tmpTime)%100;
-		tmpEventStr = itoa(tmpTime,chr,10);
-		tmpStr.resize(6-tmpEventStr.length(),'0');
+        sprintf(chr,"%d",tmpTime);
+        tmpEventStr = string(chr);
+        tmpStr.resize(6-tmpEventStr.length(),'0');
 		tmpEventStr = tmpStr + tmpEventStr + ",a," + tmpTripId + "," + tmpStopId;
 		eventList.push_back(tmpEventStr);
 
 		//For New Simulation
 		tmpTime = atof(tokens[2].c_str());
 		tmpTime = 3600*(int(tmpTime)/10000) + 60*((int(tmpTime)%10000)/100) + int(tmpTime)%100;
-		tmpEventStr = itoa(tmpTime,chr,10);
+        sprintf(chr,"%d",tmpTime);
+        tmpEventStr = string(chr);
 		tmpStr.resize(6-tmpEventStr.length(),'0');
 		tmpEventStr = tmpStr + tmpEventStr + ",d," + tmpTripId + "," + tmpStopId;
 		eventList.push_back(tmpEventStr);

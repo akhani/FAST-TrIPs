@@ -429,7 +429,8 @@ string		stop::getForwardAccessibleTrips(double _arrival, int _timeBuffer){
 		if(tmpSchDeparture>_arrival && tmpSchDeparture<_arrival+_timeBuffer){
 			tmpAccessibleTrips.append(tmpTrip);
 			tmpAccessibleTrips.append(" ");
-			tmpAccessibleTrips.append(itoa(tmpSeq,chr,10));
+			sprintf(chr,"%d",tmpSeq);
+            tmpAccessibleTrips.append(string(chr));
 			tmpAccessibleTrips.append(" ");
 		}
 	}
@@ -449,7 +450,8 @@ string		stop::getBackwardAccessibleTrips(double _departure, int _timeBuffer){
 		if(tmpSchArrival<_departure && tmpSchArrival>_departure-_timeBuffer){
 			tmpAccessibleTrips.append(tmpTrip);
 			tmpAccessibleTrips.append(" ");
-			tmpAccessibleTrips.append(itoa(tmpSeq,chr,10));
+            sprintf(chr,"%d",tmpSeq);
+            tmpAccessibleTrips.append(string(chr));
 			tmpAccessibleTrips.append(" ");
 		}
 	}

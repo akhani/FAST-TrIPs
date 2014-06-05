@@ -34,7 +34,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "ft_assignment.h"
 
 int	main(){
-	srand((unsigned)time(0));
 	cout <<"****************************** READING INPUTS *****************************"<<endl;
 	readParameters();
 	readRouteChoiceModel();
