@@ -471,4 +471,3 @@ int		trip::getDwellTime(int _seq){
 void		trip::setResidualCapacity(int _residualCapacity){
 	tripResidualCapacity.push_back(tripCapacity - passengers.size());
 }
-
