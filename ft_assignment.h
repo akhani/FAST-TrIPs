@@ -66,8 +66,8 @@ void	readParameters(){
 	}
 
 	pathModelFlag = atoi(tokens[1].c_str());
-	if (pathModelFlag!=0 && pathModelFlag!=1){
-		cout <<"ERROR - PATH MODEL PARAMETER SHOULD BE EITHER 0 or 1"<<endl;
+	if (pathModelFlag!=0 && pathModelFlag!=1 && pathModelFlag!=2){
+		cout <<"ERROR - PATH MODEL PARAMETER SHOULD BE EITHER 0, 1 or 2"<<endl;
 		exit(1);
 	}
 
@@ -179,6 +179,8 @@ void		passengerAssignment(){
             readExistingPaths();
         }else if(pathModelFlag==1){
             numAssignedPassengers = disaggregateDeterministicAssignment(iter, pathTimeBuffer, 1);
+        }else if(pathModelFlag==2){
+            numAssignedPassengers = disaggregateStochasticAssignment(iter, pathTimeBuffer, 1);
         }
 
         if(simulationFlag==1){
@@ -199,7 +201,7 @@ void		passengerAssignment(){
         outFile <<"\t\t\tMISSED PASSENGERS:\t\t\t"<<numMissedPassengers<<endl;
         outFile <<"\t\t\tCAPACITY GAP:\t\t\t\t"<<capacityGap<<endl;
 
-		if(capacityGap<0.001){
+		if(capacityGap<0.001 || pathModelFlag==2){
 			break;
 		}
     }

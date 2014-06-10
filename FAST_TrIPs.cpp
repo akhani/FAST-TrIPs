@@ -30,6 +30,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "ft_TAZ.h"
 #include "ft_passenger.h"
 #include "ft_TBSP.h"
+#include "ft_TBHP.h"
 #include "ft_simulation.h"
 #include "ft_assignment.h"
 

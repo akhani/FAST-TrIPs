@@ -53,6 +53,10 @@ protected:
 	vector<string>			tazPredecessors;
 	vector<string>			tazSuccessors;
 
+    //For TBHP
+	double					tazStrategyLebel;
+	vector<double>			tazCosts;
+
 public:
 	taz(){}
 	~taz(){}
@@ -77,6 +81,14 @@ public:
 	string					getPredecessor(int _threadId);
 	string					getSuccessor(int _threadId);
 	string					printPath(int _threadId);
+
+	//For TBHP
+	void					resetTazStrategy();
+	void					forwardStrategyUpdate(double _label, double _arrival, string _predecessor, double _cost);
+	void					backwardStrategyUpdate(double _label, double _departure, string _successor, double _cost);
+	double					getStrategyLabel();
+	string					getForwardAssignedAlternative(double _departureTime);
+	string					getBackwardAssignedAlternative(double _arrivalTime);
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 map<string,taz*>			tazSet;
@@ -294,4 +306,88 @@ string		taz::printPath(int _threadId){
 	cout <<tazId<<"\t"<<tazLabels[_threadId]<<endl;
 	cout <<"\t\t"<<tazDepartures[_threadId]<<"\t"<<tazSuccessors[_threadId]<<"\t"<<endl;
 	return "";
+}
+/////////////////////////////////////
+void		taz::resetTazStrategy(){
+	tazStrategyLebel = 999999;
+	tazArrivals.clear();
+	tazDepartures.clear();
+	tazArrivalModes.clear();
+	tazDepartureModes.clear();
+	tazPredecessors.clear();
+	tazSuccessors.clear();
+	tazCosts.clear();
+}
+void		taz::forwardStrategyUpdate(double _label, double _arrival, string _predecessor, double _cost){
+	tazStrategyLebel = _label;
+	tazArrivals.push_back(_arrival);
+	tazPredecessors.push_back(_predecessor);
+	tazCosts.push_back(_cost);
+}
+void		taz::backwardStrategyUpdate(double _label, double _departure, string _successor, double _cost){
+	tazStrategyLebel = _label;
+	tazDepartures.push_back(_departure);
+	tazSuccessors.push_back(_successor);
+	tazCosts.push_back(_cost);
+}
+double		taz::getStrategyLabel(){
+	return this->tazStrategyLebel;
+}
+string		taz::getForwardAssignedAlternative(double _departureTime){
+	int				i, j, tmpAltProb, tmpMaxProb, tmpRandNum;
+	vector<string>	tmpAlternatives;
+	vector<int>		tmpAltProbabilities;
+	char			chr[99];
+
+	if(tazArrivals.size()==0)		return "-101";
+	j=-1;
+	tmpMaxProb = 0;
+	for(i=0;i<tazArrivals.size();i++){
+		if(tazArrivals[i] > _departureTime)		continue;
+		tmpAltProb = int(1000*exp(-theta*tazCosts[i])/exp(-theta*tazStrategyLebel));
+		if(tmpAltProb < 1)		continue;
+		j++;
+		if(j>0)			tmpAltProb = tmpAltProb + tmpAltProbabilities[j-1];
+		sprintf(chr,"%d",int(100*tazArrivals[i]));
+        tmpAlternatives.push_back(tazPredecessors[i] + "\t" + string(chr));
+		tmpAltProbabilities.push_back(tmpAltProb);
+		tmpMaxProb = tmpAltProb;
+	}
+	if(tmpMaxProb==0)		return "-101";
+	tmpRandNum = rand()%tmpMaxProb;
+	for(j=0;j<tmpAlternatives.size();j++){
+		if(tmpRandNum <= tmpAltProbabilities[j]){
+			return tmpAlternatives[j];
+		}
+	}
+	return "-101";
+}
+string		taz::getBackwardAssignedAlternative(double _arrivalTime){
+	int				i, j, tmpAltProb, tmpMaxProb, tmpRandNum;
+	vector<string>	tmpAlternatives;
+	vector<int>		tmpAltProbabilities;
+	char			chr[99];
+
+	if(tazDepartures.size()==0)		return "-101";
+	j=-1;
+	tmpMaxProb = 0;
+	for(i=0;i<tazDepartures.size();i++){
+		if(tazDepartures[i] < _arrivalTime)		continue;
+		tmpAltProb = int(1000*exp(-theta*tazCosts[i])/exp(-theta*tazStrategyLebel));
+		if(tmpAltProb < 1)		continue;
+		j++;
+		if(j>0)			tmpAltProb = tmpAltProb + tmpAltProbabilities[j-1];
+		sprintf(chr,"%d",int(100*tazDepartures[i]));
+        tmpAlternatives.push_back(tazSuccessors[i] + "\t" + string(chr));
+		tmpAltProbabilities.push_back(tmpAltProb);
+		tmpMaxProb = tmpAltProb;
+	}
+	if(tmpMaxProb==0)		return "-101";
+	tmpRandNum = rand()%tmpMaxProb;
+	for(j=0;j<tmpAlternatives.size();j++){
+		if(tmpRandNum <= tmpAltProbabilities[j]){
+			return tmpAlternatives[j];
+		}
+	}
+	return "-101";
 }

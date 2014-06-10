@@ -73,6 +73,12 @@ protected:
 	vector<string>			stopSuccessors;
 	vector<int>				permanentLabels;
 
+	//For TBHP
+	double					stopStrategyLebel;
+	int						strategyPermanentLabel;
+	vector<double>			stopCosts;
+	double					stopNonWalkLabel;
+
 	//For Simulation
 	list<string>			waitingPassengers;
 
@@ -110,6 +116,22 @@ public:
 	int					getPermanentLabel(int _threadId);
 	string				getTaz();
 	string				printPath(int _threadId);
+
+	//For TBHP
+	void				resetStopStrategy();
+	void				forwardStrategyUpdate(double _label, double _arrival, string _arrivalMode, string _predecessor, double _cost, double _departure);
+	void				backwardStrategyUpdate(double _label, double _departure, string _departureMode, string _successor, double _cost, double _arrival);
+	double				getStrategyLabel();
+	double				getStrategyEarliestArrival();
+	double				getStrategyLatestArrival();
+	double				getStrategyEarliestDeparture();
+	double				getStrategyLatestDeparture();
+	void				setStrategyPermanentLabel();
+	int					getStrategyPermanentLabel();
+	double				getForwardNonWalkLabel();
+	double				getBackwardNonWalkLabel();
+	string				getForwardAssignedAlternative(double _departureTime, string _lastTrip);
+	string				getBackwardAssignedAlternative(double _arrivalTime, string _lastTrip);
 
 	//Path Backtracking
 	string				getPredecessor(int _threadId);
@@ -490,6 +512,253 @@ string		stop::printPath(int _threadId){
 	cout <<stopId<<"\t"<<stopLabels[_threadId];
 	cout <<"\t\t"<<stopDepartures[_threadId]<<"\t"<<stopSuccessors[_threadId]<<"\t"<<stopDepartureModes[_threadId]<<endl;
 	return "";
+}
+/////////////////////////////////////////////////////////
+void		stop::resetStopStrategy(){
+	stopStrategyLebel = 999999;
+	stopArrivals.clear();
+	stopDepartures.clear();
+	stopArrivalModes.clear();
+	stopDepartureModes.clear();
+	stopPredecessors.clear();
+	stopSuccessors.clear();
+	stopCosts.clear();
+    strategyPermanentLabel = 0;
+}
+void		stop::forwardStrategyUpdate(double _label, double _arrival, string _arrivalMode, string _predecessor, double _cost, double _departure){
+	stopStrategyLebel = _label;
+	stopArrivals.push_back(_arrival);
+	stopArrivalModes.push_back(_arrivalMode);
+	stopPredecessors.push_back(_predecessor);
+	stopCosts.push_back(_cost);
+	stopDepartures.push_back(_departure);
+}
+void		stop::backwardStrategyUpdate(double _label, double _departure, string _departureMode, string _successor, double _cost, double _arrival){
+	stopStrategyLebel = _label;
+	stopDepartures.push_back(_departure);
+	stopDepartureModes.push_back(_departureMode);
+	stopSuccessors.push_back(_successor);
+	stopCosts.push_back(_cost);
+	stopArrivals.push_back(_arrival);
+}
+double		stop::getStrategyLabel(){
+	return this->stopStrategyLebel;
+}
+double		stop::getStrategyEarliestArrival(){
+	double							tmpMinValue;
+	vector<double>::iterator		tmpVectorIter;
+
+	tmpMinValue = 999999;
+	for(tmpVectorIter=stopArrivals.begin();tmpVectorIter!=stopArrivals.end();tmpVectorIter++){
+		if(*tmpVectorIter < tmpMinValue){
+			tmpMinValue = *tmpVectorIter;
+		}
+	}
+	return tmpMinValue;
+}
+double		stop::getStrategyLatestArrival(){
+	double							tmpMaxValue;
+	vector<double>::iterator		tmpVectorIter;
+
+	tmpMaxValue = -999999;
+	for(tmpVectorIter=stopArrivals.begin();tmpVectorIter!=stopArrivals.end();tmpVectorIter++){
+		if(*tmpVectorIter > tmpMaxValue){
+			tmpMaxValue = *tmpVectorIter;
+		}
+	}
+	return tmpMaxValue;
+}
+double		stop::getStrategyEarliestDeparture(){
+	double							tmpMinValue;
+	vector<double>::iterator		tmpVectorIter;
+
+	tmpMinValue = 999999;
+	for(tmpVectorIter=stopDepartures.begin();tmpVectorIter!=stopDepartures.end();tmpVectorIter++){
+		if(*tmpVectorIter < tmpMinValue){
+			tmpMinValue = *tmpVectorIter;
+		}
+	}
+	return tmpMinValue;
+}
+double		stop::getStrategyLatestDeparture(){
+	double							tmpMaxValue;
+	vector<double>::iterator		tmpVectorIter;
+
+	tmpMaxValue = -999999;
+	for(tmpVectorIter=stopDepartures.begin();tmpVectorIter!=stopDepartures.end();tmpVectorIter++){
+		if(*tmpVectorIter > tmpMaxValue){
+			tmpMaxValue = *tmpVectorIter;
+		}
+	}
+	return tmpMaxValue;
+}
+void		stop::setStrategyPermanentLabel(){
+	strategyPermanentLabel = 1;
+}
+int			stop::getStrategyPermanentLabel(){
+	return this->strategyPermanentLabel;
+}
+double	stop::getForwardNonWalkLabel(){
+	int		i;
+	double  tmpNonWalkLabel;
+
+	tmpNonWalkLabel = 0;
+	for(i=0;i<stopArrivals.size();i++){
+		if (stopArrivalModes[i].substr(0,1)=="t"){
+			tmpNonWalkLabel = tmpNonWalkLabel + exp(-theta*stopCosts[i]);
+		}
+	}
+	if(tmpNonWalkLabel==0){
+		return 999999;
+	}else{
+		tmpNonWalkLabel = -1.0/theta*log(tmpNonWalkLabel);
+		return tmpNonWalkLabel;
+	}
+}
+double	stop::getBackwardNonWalkLabel(){
+	int		i;
+	double  tmpNonWalkLabel;
+
+	tmpNonWalkLabel = 0;
+	for(i=0;i<stopDepartures.size();i++){
+		if (stopDepartureModes[i].substr(0,1)=="t"){
+			tmpNonWalkLabel = tmpNonWalkLabel + exp(-theta*stopCosts[i]);
+		}
+	}
+	if(tmpNonWalkLabel==0){
+		return 999999;
+	}else{
+		tmpNonWalkLabel = -1.0/theta*log(tmpNonWalkLabel);
+		return tmpNonWalkLabel;
+	}
+}
+string		stop::getForwardAssignedAlternative(double _departureTime, string _lastTrip){
+	int				i, j, tmpAltProb, tmpMaxProb, tmpRandNum;
+	double			tmpLogsum;
+	vector<string>	tmpAlternatives;
+	vector<int>		tmpAltProbabilities;
+	char			chr1[99], chr2[99];
+
+	if(stopArrivals.size()==0){
+		//cout <<"SC1"<<endl;
+		return "-101";
+	}
+	tmpLogsum = 0;
+	for(i=0;i<stopArrivals.size();i++){
+		if((stopArrivalModes[i]=="Transfer" || stopArrivalModes[i]=="Access") && (_lastTrip=="Transfer" || _lastTrip=="Egress")){
+			//cout<<"1";
+			continue;
+		}
+		if(stopArrivals[i] > _departureTime){
+			//cout<<"2";
+			continue;
+		}
+		tmpLogsum = tmpLogsum + exp(-theta*stopCosts[i]);
+	}
+	if(tmpLogsum==0){
+		//cout <<"SC2"<<endl;
+		return "-101";
+	}
+	j=-1;
+	tmpMaxProb = 0;
+	for(i=0;i<stopArrivals.size();i++){
+		if((stopArrivalModes[i]=="Transfer" || stopArrivalModes[i]=="Access") && (_lastTrip=="Transfer" || _lastTrip=="Egress")){
+			//cout<<"3";
+			continue;
+		}
+		if(stopArrivals[i] > _departureTime){
+			//cout<<"4";
+			continue;
+		}
+		tmpAltProb = int(1000*(exp(-theta*stopCosts[i])/tmpLogsum));
+		if(tmpAltProb < 1){
+			//cout<<"5";
+			continue;
+		}
+		j++;
+		if(j>0)	tmpAltProb = tmpAltProb + tmpAltProbabilities[j-1];
+		sprintf(chr1,"%d",int(100*stopArrivals[i]));
+        sprintf(chr2,"%d",int(100*stopDepartures[i]));
+        tmpAlternatives.push_back(stopPredecessors[i]+"\t"+stopArrivalModes[i]+"\t"+string(chr1)+"\t"+string(chr2));
+        tmpAltProbabilities.push_back(tmpAltProb);
+		tmpMaxProb = tmpAltProb;
+	}
+	if(tmpMaxProb<1){
+		//cout <<"SC3"<<endl;
+		return "-101";
+	}
+	tmpRandNum = rand()%tmpMaxProb;
+	for(j=0;j<tmpAlternatives.size();j++){
+		if(tmpRandNum <= tmpAltProbabilities[j]){
+			return tmpAlternatives[j];
+		}
+	}
+	//cout <<"SC4"<<endl;
+	return "-101";
+}
+string		stop::getBackwardAssignedAlternative(double _arrivalTime, string _lastTrip){
+	int				i, j, tmpAltProb, tmpMaxProb, tmpRandNum;
+	double			tmpLogsum;
+	vector<string>	tmpAlternatives;
+	vector<int>		tmpAltProbabilities;
+	char			chr1[99], chr2[99];
+
+	if(stopDepartures.size()==0){
+		//cout <<"SC1"<<endl;
+		return "-101";
+	}
+	tmpLogsum = 0;
+	for(i=0;i<stopDepartures.size();i++){
+		if((stopDepartureModes[i]=="Transfer" || stopDepartureModes[i]=="Egress") && (_lastTrip=="Transfer" || _lastTrip=="Access")){
+			//cout<<"1";
+			continue;
+		}
+		if(stopDepartures[i] < _arrivalTime){
+			//cout<<"2";
+			continue;
+		}
+		tmpLogsum = tmpLogsum + exp(-theta*stopCosts[i]);
+	}
+	if(tmpLogsum==0){
+		//cout <<"SC2"<<endl;
+		return "-101";
+	}
+	j=-1;
+	tmpMaxProb = 0;
+	for(i=0;i<stopDepartures.size();i++){
+		if((stopDepartureModes[i]=="Transfer" || stopDepartureModes[i]=="Egress") && (_lastTrip=="Transfer" || _lastTrip=="Access")){
+			//cout<<"3";
+			continue;
+		}
+		if(stopDepartures[i] < _arrivalTime){
+			//cout<<"4";
+			continue;
+		}
+		tmpAltProb = int(1000*(exp(-theta*stopCosts[i])/tmpLogsum));
+		if(tmpAltProb < 1){
+			//cout<<"5";
+			continue;
+		}
+		j++;
+		if(j>0)	tmpAltProb = tmpAltProb + tmpAltProbabilities[j-1];
+		sprintf(chr1,"%d",int(100*stopDepartures[i]));
+        sprintf(chr2,"%d",int(100*stopArrivals[i]));
+        tmpAlternatives.push_back(stopSuccessors[i]+"\t"+stopDepartureModes[i]+"\t"+string(chr1)+"\t"+string(chr2));
+		tmpAltProbabilities.push_back(tmpAltProb);
+		tmpMaxProb = tmpAltProb;
+	}
+	if(tmpMaxProb<1){
+		//cout <<"SC3"<<endl;
+		return "-101";
+	}
+	tmpRandNum = rand()%tmpMaxProb;
+	for(j=0;j<tmpAlternatives.size();j++){
+		if(tmpRandNum <= tmpAltProbabilities[j]){
+			return tmpAlternatives[j];
+		}
+	}
+	//cout <<"SC4"<<endl;
+	return "-101";
 }
 /////////////////////////////////////////////////////////////////////////////////////////////
 void	stop::resetStopForSimulation(){
