@@ -417,7 +417,7 @@ string		passenger::getExperiencedPath(){
 		sprintf(chr,"%d",int(100*experiencedAlightingTimes[i])%100);
         tmpAlightingTimes.append(string(chr));
     }
-	tmpExperiencedPath = passengerId;
+	tmpExperiencedPath = passengerId.substr(1,99);
 	tmpExperiencedPath.append("\t");
     sprintf(chr,"%d",passengerMode);
     tmpExperiencedPath.append(string(chr));

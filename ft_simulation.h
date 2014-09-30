@@ -394,9 +394,9 @@ int		printPassengerTimes(){
 		tmpStatus = tmpPassengerPntr->getPassengerStatus();
 		if(tmpStatus==5){
 			tmpExperiencedPath = tmpPassengerPntr->getExperiencedPath();
-			tmpPassengerPntr->calculateExperiencedCost();
+            tmpPassengerPntr->calculateExperiencedCost();
 			tmpTravelCost = tmpPassengerPntr->getExperiencedCost();
-			outFile2 <<tmpExperiencedPath.substr(1,99)<<"\t"<<floor(100*tmpTravelCost)/100.0<<endl;
+			outFile2 <<tmpExperiencedPath<<"\t"<<floor(100*tmpTravelCost)/100.0<<endl;
 			noOfPassengers++;
 		}
 	}
