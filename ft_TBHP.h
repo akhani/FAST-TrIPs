@@ -161,9 +161,9 @@ int			forwardTBHP(string _origin, double _PDT, int _timeBuffer){
 				}else{
 					tmpNewCost = tmpCurrentLabel + tmpInVehTime + scheduleDelayEqv * tmpWaitingTime + 60.0*fare/VOT;
 				}
-				if ((tmpTripPntr->getRouteId()).length()>3 && (tmpTripPntr->getRouteId()).substr(1,1)=="9"){
+				/*if ((tmpTripPntr->getRouteId()).length()>3 && (tmpTripPntr->getRouteId()).substr(1,1)=="9"){
                     tmpNewCost = tmpNewCost + (60.0*1.50)/VOT;
-                }
+                }*/
 				tmpOldLabel = stopSet[tmpNewStop]->getStrategyLabel();
 				if(tmpOldLabel == 999999){
 					tmpNewLabel = tmpNewCost;
@@ -351,9 +351,9 @@ int			backwardTBHP(string _destination, double _PAT, int _timeBuffer){
 				}else{
 					tmpNewCost = tmpCurrentLabel + tmpInVehTime + scheduleDelayEqv * tmpWaitingTime + 60.0*fare/VOT;
 				}
-				if ((tmpTripPntr->getRouteId()).length()>3 && (tmpTripPntr->getRouteId()).substr(1,1)=="9"){
+				/*if ((tmpTripPntr->getRouteId()).length()>3 && (tmpTripPntr->getRouteId()).substr(1,1)=="9"){
                     tmpNewCost = tmpNewCost + (60.0*1.50)/VOT;
-                }
+                }*/
 				tmpOldLabel = stopSet[tmpNewStop]->getStrategyLabel();
 				if(tmpOldLabel == 999999){
 					tmpNewLabel = tmpNewCost;
@@ -532,7 +532,14 @@ string		getBackwardElementaryPath(string _origin, double _PDT){
 	}
 	tmpCurrentStop = tokens[0];
 	tmpStartTime = atof(tokens[1].c_str())/100;
-	tmpAccessLink = _origin + "," + tmpCurrentStop;
+    sprintf(chr,"%d",int(100*tmpStartTime));
+    tmpStr = string(chr);
+    tmpStrLen = tmpStr.length();
+	tmpPath = tmpStr.substr(0,max(0,tmpStrLen-2)) + ".";
+	if(tmpStrLen<2)			tmpPath = tmpPath + "0";
+	tmpPath = tmpPath + tmpStr.substr(max(0,tmpStrLen-2),2);
+    
+    tmpAccessLink = _origin + "," + tmpCurrentStop;
 	sprintf(chr,"%d",int(100*accessTimes[tmpAccessLink]));
     tmpIn = string(chr);
     tmpStrLen = tmpIn.length();
@@ -566,20 +573,21 @@ string		getBackwardElementaryPath(string _origin, double _PDT){
 			tmpFirstTrip = tmpCurrentTrip;
 		}
 		if(i==1){
-			tmpStartTime = tripSet[tmpFirstTrip]->getSchDepartureByStop(tmpFirstStop) - accessTimes[tmpAccessLink];
+            /*tmpStartTime = tripSet[tmpFirstTrip]->getSchDepartureByStop(tmpFirstStop) - accessTimes[tmpAccessLink];
             sprintf(chr,"%d",int(100*tmpStartTime));
             tmpIn = string(chr);
             tmpStrLen = tmpStr.length();
 			tmpPath = tmpStr.substr(0,max(0,tmpStrLen-2)) + ".";
-			if(tmpStrLen<2)			tmpPath = tmpPath + "0";
-			tmpPath = tmpPath + tmpStr.substr(max(0,tmpStrLen-2),2);
+			//cout <<tmpStartTime<<"\t"<<chr<<"\t"<<tmpIn<<"\t"<<tmpStrLen<<"\t"<<tmpPath<<"\t";
+            if(tmpStrLen<2)			tmpPath = tmpPath + "0";
+			tmpPath = tmpPath + tmpStr.substr(max(0,tmpStrLen-2),2);*/
 		}
 		if(tmpCurrentTrip=="Egress"){
 			tmpAccessLink = tmpNewStop + "," + tmpCurrentStop;		
 			sprintf(chr,"%d",int(100*accessTimes[tmpAccessLink]));
             tmpIn = string(chr);
             tmpStrLen = tmpIn.length();
-			tmpWalkingTimes = tmpWalkingTimes + "," + tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
+            tmpWalkingTimes = tmpWalkingTimes + "," + tmpIn.substr(0,max(0,tmpStrLen-2)) + ".";
 			if(tmpStrLen<2)					tmpWalkingTimes = tmpWalkingTimes + "0";
 			tmpWalkingTimes = tmpWalkingTimes + tmpIn.substr(max(0,tmpStrLen-2),2);
 
@@ -696,7 +704,7 @@ int		disaggregateStochasticAssignment(int _iter, int _timeBuff, int _numThreads)
         if(k%max(min(tmpNumPassengers/10,1000),10)==0){
             endTime = clock()*1.0/CLOCKS_PER_SEC;
             cpuTime = round(100 * (endTime - startTime))/100.0;
-			cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+			cout <<k<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
 		}
 	}
     endTime = clock()*1.0/CLOCKS_PER_SEC;
