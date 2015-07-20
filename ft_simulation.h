@@ -167,6 +167,7 @@ int		boardPassengers(int _t, string _tripId, string _stopId){
 
 	//For Available Capacity Definition
 	string			fromToAt;
+    string          fromToAt2;
     float			tmpArrivaltime, tmpLatestArrivalTime;
 
 	stop*			tmpStopPntr;
@@ -194,7 +195,7 @@ int		boardPassengers(int _t, string _tripId, string _stopId){
 					tmpNoOfMissings = tmpNoOfMissings + 1;
 
 					fromToAt = tmpTripId + "," + _stopId;
-					tmpArrivaltime = tmpPassengerPntr->getArrivalTime();
+                    tmpArrivaltime = tmpPassengerPntr->getArrivalTime();
 					if(availableCapacity.find(fromToAt)==availableCapacity.end()){
 						availableCapacity[fromToAt] = tmpArrivaltime;
 					}else{
@@ -203,6 +204,18 @@ int		boardPassengers(int _t, string _tripId, string _stopId){
 							availableCapacity[fromToAt] = tmpArrivaltime;
 						}
 					}
+                    
+                    fromToAt2 = tmpPassengerPntr->getLastTripId();
+                    if(fromToAt2=="Access"){
+                        fromToAt2 = fromToAt2 + "," + tmpTripId + "," + _stopId;
+                    }else{
+                        fromToAt2 = fromToAt2 + "," + tmpPassengerPntr->getLastAlightingStop();
+                        fromToAt2 = fromToAt2 + "," + tmpTripId + "," + _stopId;
+                    }
+                    if(availableCapacity2.find(fromToAt2)!=availableCapacity2.end()){
+                        availableCapacity2[fromToAt2]=0;
+                    }
+					
 				}else{
 					tmpTripPntr->addPassenger(tmpPassengerId);
 					tmpPassengerPntr->addBoardingTime(_t/60.0);

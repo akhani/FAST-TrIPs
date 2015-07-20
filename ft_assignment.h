@@ -169,7 +169,7 @@ void		passengerAssignment(){
 	outFile.open("ft_output_runStatistics.dat");
 	outFile <<"******************************* SUMMARY ****************************************"<<endl;
 
-	for(int iter=1;iter<=iterationFlag;iter++){
+    for(int iter=1;iter<=iterationFlag;iter++){
         cout <<"***************************** ITERATION "<<iter<<" **************************************"<<endl;
         outFile <<"***************************** ITERATION "<<iter<<" **************************************"<<endl;
 
@@ -178,7 +178,8 @@ void		passengerAssignment(){
         }else if(pathModelFlag==1){
             numAssignedPassengers = disaggregateDeterministicAssignment(iter, pathTimeBuffer, 1);
         }else if(pathModelFlag==2){
-            numAssignedPassengers = disaggregateStochasticAssignment(iter, pathTimeBuffer, 1);
+            //numAssignedPassengers = disaggregateStochasticAssignment(iter, pathTimeBuffer, 1);
+            numAssignedPassengers = pathBasedStochasticAssignment(iter, pathTimeBuffer, printPassengersFlag, 1);
         }
 
         if(simulationFlag==1){
@@ -199,7 +200,7 @@ void		passengerAssignment(){
         outFile <<"\t\t\tMISSED PASSENGERS:\t\t\t"<<numMissedPassengers<<endl;
         outFile <<"\t\t\tCAPACITY GAP:\t\t\t\t"<<capacityGap<<endl;
 
-		if(capacityGap<0.001 || pathModelFlag==2){
+        if(capacityGap<0.001){
 			break;
 		}
     }

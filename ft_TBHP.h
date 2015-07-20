@@ -632,7 +632,7 @@ string		getBackwardElementaryPath(string _origin, double _PDT){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int		disaggregateStochasticAssignment(int _iter, int _timeBuff, int _numThreads){
 	int									k, numThreads, tmpNumPassengers, tmpNumPaths;
-	double								startTime, endTime, cpuTime;;
+	double								startTime, endTime, cpuTime;
 
 	numThreads = _numThreads;
 	parallelizeStops(numThreads);
@@ -710,5 +710,135 @@ int		disaggregateStochasticAssignment(int _iter, int _timeBuff, int _numThreads)
     endTime = clock()*1.0/CLOCKS_PER_SEC;
     cpuTime = round(100 * (endTime - startTime))/100.0;
     cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+	return tmpNumPaths;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassengersFlag, int _numThreads){
+	int									k, numThreads, tmpNumPassengers, tmpNumPaths;
+	double								startTime, endTime, cpuTime;
+    
+    map<string,int>						tmpPathSet;
+	map<string,int>::iterator			tmpPathSetIter;
+
+	numThreads = _numThreads;
+	parallelizeStops(numThreads);
+	parallelizeTazs(numThreads);
+	parallelizeTrips(numThreads);
+
+    ofstream	outFile;
+    if(_printPassengersFlag==1){
+        if(_iter==1){
+            outFile.open("ft_output_choiceSet.dat");
+            outFile <<"passengerId\torigin\tdestination\tnumOfOccur\tpath"<<endl;
+        }else{
+            outFile.open("ft_output_choiceSet.dat",ofstream::app);
+            outFile <<"ITERATION "<<_iter<<endl;
+        }
+    }
+
+    cout <<"**************************** GENERATING PATHS ****************************"<<endl;
+	startTime = clock()*1.0/CLOCKS_PER_SEC;
+	tmpNumPassengers = passengerSet.size();
+	tmpNumPaths = 0;
+	for(k=0;k<tmpNumPassengers;k++){
+		int									threadId, tmpNumIterations, tmpTourHalf, tmpStatus, n;
+		string								tmpPassengerId, tmpOriginTaz, tmpDestinationTaz, tmpPath;
+		double								tmpPDT, tmpPAT;
+		passenger*							passengerPntr;
+		map<string,passenger*>::iterator	tmpPassengerIter;
+
+		threadId = 0;
+		tmpPassengerIter = passengerSet.begin();
+		advance(tmpPassengerIter, k);
+		if(tmpPassengerIter==passengerSet.end())	continue;
+
+		tmpPassengerId = (*tmpPassengerIter).first;
+		passengerPntr = NULL;
+		passengerPntr = passengerSet[tmpPassengerId];
+		tmpOriginTaz =passengerPntr->getOriginTAZ();
+		tmpDestinationTaz = passengerPntr->getDestinationTAZ();
+		if(tazSet.find(tmpOriginTaz)==tazSet.end() || tazSet.find(tmpDestinationTaz)==tazSet.end())	continue;
+		if(tmpOriginTaz==tmpDestinationTaz)	continue;
+
+		tmpStatus = passengerPntr->getPassengerStatus();
+        if(_iter>1){
+            if(tmpStatus==5){
+                tmpNumPaths++;
+                continue;
+            }else if(tmpStatus==4){
+                passengerPntr->setAssignedPath("");
+                passengerPntr->analyzePaths();
+                tmpPath = passengerPntr->assignPath();
+                if(tmpPath!="-101"){
+                    passengerPntr->setAssignedPath(tmpPath);
+                    tmpNumPaths++;
+                }
+                continue;
+            }else{
+                passengerPntr->resetPaths();
+                passengerPntr->setAssignedPath("");
+                passengerPntr->setPassengerStatus(-1);
+                continue;
+            }
+        }
+		tmpPDT = passengerPntr->getPDT();
+		tmpPAT = passengerPntr->getPAT();
+		tmpTourHalf = passengerPntr->getTourHalf();
+		tmpPathSet.clear();
+        if (tmpTourHalf==1){
+            tmpNumIterations = backwardTBHP(tmpDestinationTaz, tmpPAT, _timeBuff);
+            for (n=1;n<=1000;n++){
+                tmpPath = getBackwardElementaryPath(tmpOriginTaz, tmpPDT);
+                if(tmpPath!="-101"){
+                    tmpPathSetIter = tmpPathSet.find(tmpPath);
+                    if (tmpPathSetIter==tmpPathSet.end())
+                        tmpPathSet[tmpPath] = 1;
+                    else{
+                        tmpPathSet[tmpPath] = tmpPathSet[tmpPath] + 1;
+                    }
+                    passengerPntr->addPaths(tmpPath);
+                }
+            }
+		}else{
+            tmpNumIterations = forwardTBHP(tmpOriginTaz, tmpPDT, _timeBuff);
+            for (n=1;n<=1000;n++){
+                tmpPath = getForwardElementaryPath(tmpDestinationTaz, tmpPAT);
+                if(tmpPath!="-101"){
+                    tmpPathSetIter = tmpPathSet.find(tmpPath);
+                    if (tmpPathSetIter==tmpPathSet.end())
+                        tmpPathSet[tmpPath] = 1;
+                    else{
+                        tmpPathSet[tmpPath] = tmpPathSet[tmpPath] + 1;
+                    }
+                    passengerPntr->addPaths(tmpPath);
+                }
+            }
+		}
+        
+        if(_printPassengersFlag==1){
+            for(tmpPathSetIter=tmpPathSet.begin();tmpPathSetIter!=tmpPathSet.end();tmpPathSetIter++){
+                outFile <<tmpPassengerId.substr(1,99)<<"\t"<<tmpOriginTaz.substr(1,99)<<"\t"<<tmpDestinationTaz.substr(1,99)<<"\t"<<(*tmpPathSetIter).second<<"\t"<<(*tmpPathSetIter).first<<endl;
+            }
+        }
+
+        passengerPntr->analyzePaths();
+        tmpPath = passengerPntr->assignPath();
+		if(tmpPath!="-101"){
+			passengerPntr->setAssignedPath(tmpPath);
+			tmpNumPaths++;
+		}
+
+        if(k%max(min(tmpNumPassengers/10,1000),10)==0){
+            endTime = clock()*1.0/CLOCKS_PER_SEC;
+            cpuTime = round(100 * (endTime - startTime))/100.0;
+			cout <<k<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+		}
+	}
+    endTime = clock()*1.0/CLOCKS_PER_SEC;
+    cpuTime = round(100 * (endTime - startTime))/100.0;
+    cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    if(_printPassengersFlag==1){
+       outFile.close();
+    }
 	return tmpNumPaths;
 }

@@ -60,6 +60,13 @@ protected:
 	string				experiencedPath;
 	double				experiencedCost;
 
+    //path-based assignment
+    map<string,int>						pathSet;
+    map<string,int>::iterator			pathIter;
+    map<string,double>					pathUtility;
+	map<string,double>::iterator		pathIter2;
+    map<string,int>                     pathCapacity;
+    
 public:
 	passenger(){}
 	~passenger(){}
@@ -104,10 +111,16 @@ public:
 
 	//For Available Capacity Definition
 	string			getLastTripId();
+    string			getLastAlightingStop();
 
 	void			calculateExperiencedCost();
 	double			getExperiencedCost();
 
+    //path-based assignment
+    void            resetPaths();
+    void            addPaths(string _tmpPath);
+    void            analyzePaths();
+    string          assignPath();
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 map<string,passenger*>				passengerSet;
@@ -453,6 +466,13 @@ string		passenger::getLastTripId(){
 		return	"Access";
 	}
 }
+string		passenger::getLastAlightingStop(){
+	if(passengerPathIndex>0){
+		return	this->alightingStops[passengerPathIndex];
+	}else{
+		return	"Origin";
+	}
+}
 ///////////////////////////////////////////////
 void	passenger::calculateExperiencedCost(){
 	double	tmpWaitingTime, tmpAccessWalkingTime, tmpEgressWalkingTime, tmpTransferWalkingTime, tmpInVehTime;
@@ -484,4 +504,180 @@ void	passenger::calculateExperiencedCost(){
 }
 double	passenger::getExperiencedCost(){
 	return this->experiencedCost;
+}
+///////////////////////////////////////////////
+void    passenger::resetPaths(){
+    pathSet.clear();
+}
+void    passenger::addPaths(string _tmpPath){
+    pathIter = pathSet.find(_tmpPath);
+    if (pathIter==pathSet.end())
+        pathSet[_tmpPath] = 1;
+    else{
+        pathSet[_tmpPath] = pathSet[_tmpPath] + 1;
+    }
+}
+void    passenger::analyzePaths(){
+	//For Choice Set Attributes
+    int                         n;
+	string					    buf, buf2;
+	vector< vector<string> >	tokens;
+	vector<string>			    tokens2;
+	vector<string>			    tmpTrips, tmpBoardings, tmpAlightings, tmpWalkings;
+	string					    tmpStartTime, tmpFromToAt;
+	double					    NTR, IWT, IVT, TRT, ACD, EGD, TRD, ScDelay, FARE, tmpUtility;
+	string  					routeComb, tripComb, transferComb; //transferComb for capacity constraints
+
+    pathUtility.clear();
+    pathCapacity.clear();
+    for(pathIter=pathSet.begin();pathIter!=pathSet.end();pathIter++){
+        buf.clear();
+        tokens.clear();
+        stringstream ss((*pathIter).first);
+        while (ss >> buf){
+            stringstream ss2(buf);
+            buf2.clear();
+            tokens2.clear();
+            while (getline(ss2, buf2, ',')){
+                tokens2.push_back(buf2);
+            }
+            tokens.push_back(tokens2);
+        }
+        tmpStartTime = tokens[0][0];
+        tmpTrips = tokens[2];
+        tmpBoardings = tokens[1];
+        tmpAlightings = tokens[3];
+        tmpWalkings = tokens[4];
+
+        routeComb = "";
+        tripComb = "";
+        NTR = tmpTrips.size() - 1;
+        IWT = tripSet[tmpTrips[0]]->getSchDepartureByStop(tmpBoardings[0]) - atof(tmpWalkings[0].c_str()) - atof(tmpStartTime.c_str());
+        IWT = roundf(IWT * 100) / 100;
+        IVT = 0;
+        TRT = 0;
+        ACD = atof(tmpWalkings[0].c_str());
+        EGD = atof(tmpWalkings[tmpWalkings.size()-1].c_str());
+        TRD = 0;
+        if(passengerTourHalf==1){
+            ScDelay = passengerPAT - passengerPAT; //should be fixed
+        }else{
+            ScDelay = atof(tmpStartTime.c_str()) - passengerPDT;
+        }
+        FARE = 0;
+        pathCapacity[(*pathIter).first] = 1;
+        
+        for (n=0;n<tmpTrips.size();n++){
+            if(routeComb==""){
+                routeComb = tripSet[tmpTrips[n]]->getRouteId().substr(1,99);
+            }else{
+                routeComb = routeComb + "," + tripSet[tmpTrips[n]]->getRouteId().substr(1,99);
+            }
+            if(tripComb==""){
+                tripComb = tmpTrips[n].substr(1,99);
+            }else{
+                tripComb = tripComb + "," + tmpTrips[n].substr(1,99);
+            }
+            IVT = IVT + tripSet[tmpTrips[n]]->getSchArrivalByStop(tmpAlightings[n]) - tripSet[tmpTrips[n]]->getSchDepartureByStop(tmpBoardings[n]);
+            if(tripSet[tmpTrips[n]]->getSchArrivalByStop(tmpAlightings[n]) - tripSet[tmpTrips[n]]->getSchDepartureByStop(tmpBoardings[n]) < 0){
+            	cout <<tripSet[tmpTrips[n]]->getSchArrivalByStop(tmpAlightings[n]) - tripSet[tmpTrips[n]]->getSchDepartureByStop(tmpBoardings[n])<<endl;
+            }
+            if(n!=0 && n!=tmpTrips.size()-1){
+                TRT = TRT + tripSet[tmpTrips[n]]->getSchDepartureByStop(tmpBoardings[n]) - tripSet[tmpTrips[n-1]]->getSchArrivalByStop(tmpAlightings[n-1]) - atof(tmpWalkings[n].c_str());
+                TRD = TRD + atof(tmpWalkings[n].c_str());
+            }
+            FARE = FARE + 1.0;
+            if ((tripSet[tmpTrips[n]]->getRouteId()).length()>3 && (tripSet[tmpTrips[n]]->getRouteId()).substr(1,1)=="9") FARE = FARE + 1.50;
+            if(n==0){
+                tmpFromToAt = "Access," + tmpTrips[n] + "," + tmpBoardings[n];
+                if(availableCapacity2.find(tmpFromToAt)!=availableCapacity2.end()){
+                    if(availableCapacity2[tmpFromToAt]==0){
+                        pathCapacity[(*pathIter).first] = 0;
+                    }
+                }
+            }else{
+                tmpFromToAt = tmpTrips[n-1] + "," + tmpAlightings[n-1] + "," + tmpTrips[n] + "," + tmpBoardings[n];
+                if(availableCapacity2.find(tmpFromToAt)!=availableCapacity2.end()){
+                    if(availableCapacity2[tmpFromToAt]==0){
+                        pathCapacity[(*pathIter).first] = 0;
+                    }
+                }
+            }
+        }
+        IVT = roundf(IVT * 100) / 100;
+        tmpUtility = inVehTimeEqv*IVT + waitingEqv*(IWT+TRT) + originWalkEqv*ACD + destinationWalkEqv*EGD + transferWalkEqv*TRD + transferPenalty*NTR + scheduleDelayEqv*ScDelay + 60*FARE/VOT;
+        tmpUtility = roundf(tmpUtility * 100) / 100;
+        pathUtility[(*pathIter).first] = tmpUtility;
+        //cout	<<passengerId.substr(1,99)<<"\t"<<(*pathIter).second<<"\t"<<pathUtility[(*pathIter).first];
+        //cout  <<"\t"<<NTR<<"\t"<<IWT<<"\t"<<IVT<<"\t"<<TRT<<"\t"<<ACD<<"\t"<<EGD<<"\t"<<TRD<<"\t"<<FARE<<endl;
+    }
+}
+string  passenger::assignPath(){
+	int				i, j, tmpAltProb, tmpMaxProb, tmpRandNum;
+    double          tmpLogsum;
+	vector<string>	tmpAlternatives;
+	vector<int>		tmpAltProbabilities;
+
+    //If there is no path in the path set, skip
+    if(pathUtility.size()==0){
+        if(pathSet.size()==0){
+            //cout <<"NO ASSIGNED PATH"<<endl;
+            return "-101";
+        }else{
+            cout <<"PATH SET != PATH UTILITY"<<endl;
+        }
+	}
+
+    //Calculate the denominator of the logit model
+	i = 0;
+    tmpLogsum = 0;
+	for(pathIter2=pathUtility.begin();pathIter2!=pathUtility.end();pathIter2++){
+        if(pathCapacity[(*pathIter2).first]>0){
+            i++;
+            tmpLogsum = tmpLogsum + exp(-theta*(*pathIter2).second);
+        }
+    }
+    if(i==0){
+		//cout <<"i=0; ";
+		return "-101";
+    }
+	if(tmpLogsum==0){
+		cout <<"LOGSUM=0"<<endl;
+		return "-101";
+	}
+
+    //calculate the probability of each alternative
+	j=-1;
+	tmpMaxProb = 0;
+	for(pathIter2=pathUtility.begin();pathIter2!=pathUtility.end();pathIter2++){
+        if(pathCapacity[(*pathIter2).first]>0){
+            tmpAltProb = int(1000000*(exp(-theta*(*pathIter2).second))/tmpLogsum);
+            if(tmpAltProb < 1){
+                continue;
+            }
+            j++;
+            if(j>0)	tmpAltProb = tmpAltProb + tmpAltProbabilities[j-1];
+
+            tmpAlternatives.push_back((*pathIter2).first);
+            tmpAltProbabilities.push_back(tmpAltProb);
+            tmpMaxProb = tmpAltProb;
+        }
+	}
+	if(tmpMaxProb<1){
+		cout <<"MAXPROB=0"<<endl;
+		return "-101";
+	}
+
+    //select an alternative
+	tmpRandNum = rand()%tmpMaxProb;
+	for(j=0;j<tmpAlternatives.size();j++){
+		if(tmpRandNum <= tmpAltProbabilities[j]){
+			assignedPath = tmpAlternatives[j];
+            return tmpAlternatives[j];
+		}
+	}
+
+    //If nothing returned, return error!
+	cout <<"WHAT?"<<endl;
+	return "-101";
 }
