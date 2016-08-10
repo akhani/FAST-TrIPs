@@ -21,7 +21,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -------------------------------------------------------*/
-
+#include <omp.h>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -32,10 +32,24 @@ limitations under the License.
 #include <set>
 #include <queue>
 #include <math.h>
+
+#include <stdlib.h>
 using namespace std;
-double		inVehTimeEqv, waitingEqv, originWalkEqv, destinationWalkEqv, transferWalkEqv, transferPenalty, scheduleDelayEqv, fare, VOT, theta, capacityConstraint;
+double		inVehTimeEqv, waitingEqv, originWalkEqv, destinationWalkEqv, transferWalkEqv, transferPenalty, scheduleDelayEqv, fare, VOT, theta, capacityConstraint,
+			railInVehTimeEqv;
+
 map<string,double>		availableCapacity;
 map<string,int>		availableCapacity2;
+
+string getTime(){
+  time_t rawtime;
+  struct tm * timeinfo;
+
+  time (&rawtime);
+  timeinfo = localtime (&rawtime);
+  return asctime(timeinfo);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 class	stop{
 protected:
@@ -62,6 +76,7 @@ protected:
 	vector<string>			stopTazs;
 	vector<double>			stopAccessDistances;
 	vector<double>			stopAccessTimes;
+	vector<int>			stopAccessTypes;
 
 	vector<double>			stopLabels;
 	vector<double>			stopArrivals;
@@ -70,16 +85,17 @@ protected:
 	vector<string>			stopDepartureModes;
 	vector<string>			stopPredecessors;
 	vector<string>			stopSuccessors;
-	vector<int>				permanentLabels;
+	vector<int>			permanentLabels;
 
 	//For TBHP
-	double					stopStrategyLebel;
-	int						strategyPermanentLabel;
+	double			        stopStrategyLebel;
+	int				strategyPermanentLabel;
 	vector<double>			stopCosts;
-	double					stopNonWalkLabel;
+	double			        stopNonWalkLabel;
 
 	//For Simulation
 	list<string>			waitingPassengers;
+        
 
 public:
 	stop(){}
@@ -157,6 +173,8 @@ int			defineTransferStops();
 int			parallelizeStops(int _numThreads);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 int		readStops(){
+    cout <<"reading stops:\t\t\t";
+    
 	string			tmpIn, tmpStopId, buf;
 	vector<string>	tokens;
 	stop*			tmpStopPntr;
@@ -168,7 +186,7 @@ int		readStops(){
 		exit(1);
 	}
 
-	getline(inFile,tmpIn);
+	//getline(inFile,tmpIn);
 	while (!inFile.eof()){
 		buf.clear();
 		tokens.clear();
@@ -190,6 +208,8 @@ int		readStops(){
 	return stopSet.size();
 }
 int		readTransfers(){
+    cout <<"reading transfers:\t\t";
+
 	string			tmpIn, tmpStopId, buf;
 	int				numTransfers;
 	vector<string>	tokens;
@@ -200,7 +220,7 @@ int		readTransfers(){
 		cerr << "Unable to open file ft_input_transfers.dat";
 		exit(1);   // call system to stop
 	}
-	getline(inFile,tmpIn);
+	//getline(inFile,tmpIn);
 	numTransfers = 0;
 	while (!inFile.eof()){
 		buf.clear();
@@ -221,7 +241,9 @@ int		readTransfers(){
 	return numTransfers;
 }
 int		defineTransferStops(){
-	int						tmpNumRoutes, tmpNumTransfers, numTransferStops;
+    cout <<"defining transfer stops:\t";
+
+        int						tmpNumRoutes, tmpNumTransfers, numTransferStops;
 	list<stop*>::iterator	tmpStopListIter;
 	stop*					tmpStopPntr;
 
@@ -325,6 +347,7 @@ void		stop::attachStopTime(string _tmpIn){
 }
 void		stop::attachTaz(string _tmpIn){
 	string			buf, tmpTaz;
+	int			tmpAccessType;
 	vector<string>	tokens;
 	double			tmpAccessDist, tmpAccessTime;
 
@@ -338,9 +361,11 @@ void		stop::attachTaz(string _tmpIn){
 	tmpTaz.append(tokens[0]);
 	tmpAccessDist = atof(tokens[2].c_str());
 	tmpAccessTime = atof(tokens[3].c_str());
+	tmpAccessType = atoi(tokens[4].c_str());
 	stopTazs.push_back(tmpTaz);
 	stopAccessDistances.push_back(tmpAccessDist);
 	stopAccessTimes.push_back(tmpAccessTime);
+	stopAccessTypes.push_back(tmpAccessType);
 }
 void		stop::setTransferStop(int _transferStop){
 	stopTransferStop = _transferStop;

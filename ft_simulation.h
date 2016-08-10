@@ -275,18 +275,24 @@ int		simulation(){
 	vector<string>		tokens;
 	trip*				tripPntr;
 
+        ofstream     logFile;
+        logFile.open("ft_log.txt", fstream::app);
+        logFile <<"Simulation started at:"<<getTime()<<endl;
+
 	numAssignedPassengers = initializeSimulatoin();
 	numArrivedPassengers = 0;
 	numMissedPassengers = 0;
 
     startTime = clock()*1.0/CLOCKS_PER_SEC;
     tmpOut = createPassengers(0, 24*3600);
+    logFile <<tmpOut<<"passengers created"<<endl;
     maxEvent = eventList.size();
     for(counter=0;counter<maxEvent;counter++){
         if (counter>0 && counter%10000==0){
             endTime = clock()*1.0/CLOCKS_PER_SEC;
             cpuTime = round(100 * (endTime - startTime))/100.0;
             cout <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
+            logFile <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
         }
         tmpEventStr = eventList.front();
         stringstream ss(tmpEventStr);
@@ -317,10 +323,14 @@ int		simulation(){
     endTime = clock()*1.0/CLOCKS_PER_SEC;
     cpuTime = round(100 * (endTime - startTime))/100.0;
     cout <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
+    logFile <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
+    logFile <<"Simulation finished at:"<<getTime()<<endl;
+    logFile.close();
     return	numArrivedPassengers;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
 int		printLoadProfile(){
+	//cout <<"*****************************PRINTING LOAD-PROFILE*****************************"<<endl;
 	int									i, tmpMaxSeq, tmpNumStopTimes, tmpDwellTime, tmpVehLoad, tmpBoardings, tmpAlightings;
 	double								tmpDepartureTime, tmpHeadway;
 	string								tmpOut, tmpRouteId, tmpShapeId, tmpTripId, tmpDirection, tmpStopId;
@@ -329,7 +339,7 @@ int		printLoadProfile(){
 
 	ofstream outFile1;
 	outFile1.open("ft_output_loadProfile.dat");
-	outFile1 <<"routeId\tshapeId\ttripId\tdirection\tstopId\ttraveledDist\tdepartureTime\theadway\tdwellTime\tboardings\talightings\tload"<<endl;
+	//outFile1 <<"routeId\tshapeId\ttripId\tdirection\tstopId\tsequence\tdepartureTime\theadway\tdwellTime\tboardings\talightings\tload"<<endl;
 
 	tmpNumStopTimes = 0;
 	for(tmpTripListIter=tripList.begin();tmpTripListIter!=tripList.end();tmpTripListIter++){
@@ -348,7 +358,7 @@ int		printLoadProfile(){
 			tmpAlightings = tmpTripPntr->getAlightings(i);
 			tmpVehLoad = tmpTripPntr->getVehLoad(i);
             outFile1 <<tmpRouteId.substr(1,99)<<"\t"<<tmpShapeId<<"\t"<<tmpTripId.substr(1,99)<<"\t"<<tmpDirection<<"\t"
-                    <<tmpStopId.substr(1,99)<<"\t-1\t"<<tmpDepartureTime<<"\t"<<tmpHeadway<<"\t"<<tmpDwellTime<<"\t"<<tmpBoardings<<"\t"<<tmpAlightings<<"\t"<<tmpVehLoad<<endl;
+                    <<tmpStopId.substr(1,99)<<"\t"<<i<<"\t"<<tmpDepartureTime<<"\t"<<tmpHeadway<<"\t"<<tmpDwellTime<<"\t"<<tmpBoardings<<"\t"<<tmpAlightings<<"\t"<<tmpVehLoad<<endl;
             tmpNumStopTimes++;
             }
 	}
@@ -357,17 +367,16 @@ int		printLoadProfile(){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
 int		printPassengerPaths(){
-	//cout <<"***************************** PRINTING PATHS *****************************"<<endl;
-	int									noOfPassengers, tmpMode, tmpStatus;
-	double								tmpPAT;
+	//cout <<"*****************************PRINTING PASSENGER-PATHS*****************************"<<endl;
+	int									noOfPassengers, tmpMode;
 	string								fileStr, tmpPassengerId, tmpOriginTaz, tmpDestinationTaz, tmpPath;
 	map<string,passenger*>::iterator	tmpPassengerIter;
 	passenger*							passengerPntr;
 
 	noOfPassengers = 0;
-	ofstream	outFile;
-	outFile.open("ft_output_passengerPaths.dat");
-	outFile <<"passengerId\tmode\toriginTaz\tdestinationTaz\tstartTime\tboardingStops\tboardingTrips\talightingStops\twalkingTimes"<<endl;
+	ofstream	outFile2;
+	outFile2.open("ft_output_passengerPaths.dat");
+	//outFile <<"passengerId\tmode\toriginTaz\tdestinationTaz\tstartTime\tboardingStops\tboardingTrips\talightingStops\twalkingTimes"<<endl;
 	for(tmpPassengerIter=passengerSet.begin();tmpPassengerIter!=passengerSet.end();tmpPassengerIter++){
 		tmpPassengerId = (*tmpPassengerIter).first;
 		passengerPntr = NULL;
@@ -375,28 +384,27 @@ int		printPassengerPaths(){
 		tmpMode = passengerPntr->getMode();
 		tmpOriginTaz = passengerPntr->getOriginTAZ();
 		tmpDestinationTaz = passengerPntr->getDestinationTAZ();
-		tmpPAT = passengerPntr->getPAT();
 		tmpPath = passengerPntr->getAssignedPath();
-		tmpStatus = passengerPntr->getPassengerStatus();
 		if(tmpPath!=""){
-			outFile <<tmpPassengerId.substr(1,99)<<"\t"<<tmpMode<<"\t"<<tmpOriginTaz.substr(1,99)<<"\t"<<tmpDestinationTaz.substr(1,99)<<"\t"<<tmpPath<<endl;
+			outFile2 <<tmpPassengerId.substr(1,99)<<"\t"<<tmpMode<<"\t"<<tmpOriginTaz.substr(1,99)<<"\t"<<tmpDestinationTaz.substr(1,99)<<"\t"<<tmpPath<<endl;
 			noOfPassengers++;
 		}
 	}
-	outFile.close();
+	outFile2.close();
 	return noOfPassengers;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
 int		printPassengerTimes(){
+	//cout <<"*****************************PRINTING PASSENGER-TIMES*****************************"<<endl;
 	int									noOfPassengers, tmpStatus;
 	double								tmpTravelCost;
 	string								tmpExperiencedPath;
 	list<passenger*>::iterator			tmpPassengerListIter;
 	passenger*							tmpPassengerPntr;
 
-	ofstream outFile2;
-	outFile2.open("ft_output_passengerTimes.dat");
-	outFile2 <<"passengerId\tmode\toriginTAz\tdestinationTaz\tstartTime\tendTime\tarrivalTimes\tboardingTimes\talightingTimes\ttravelCost"<<endl;
+	ofstream outFile3;
+	outFile3.open("ft_output_passengerTimes.dat");
+	//outFile2 <<"passengerId\tmode\toriginTAz\tdestinationTaz\tstartTime\tendTime\tarrivalTimes\tboardingTimes\talightingTimes\ttravelCost"<<endl;
 
 	noOfPassengers = 0;
 	for(tmpPassengerListIter=passengerList.begin();tmpPassengerListIter!=passengerList.end();tmpPassengerListIter++){
@@ -407,11 +415,70 @@ int		printPassengerTimes(){
 			tmpExperiencedPath = tmpPassengerPntr->getExperiencedPath();
             tmpPassengerPntr->calculateExperiencedCost();
 			tmpTravelCost = tmpPassengerPntr->getExperiencedCost();
-			outFile2 <<tmpExperiencedPath<<"\t"<<floor(100*tmpTravelCost)/100.0<<endl;
+			outFile3 <<tmpExperiencedPath<<"\t"<<floor(100*tmpTravelCost)/100.0<<endl;
 			noOfPassengers++;
 		}
 	}
-	outFile2.close();
+	outFile3.close();
 	return noOfPassengers;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
+int		printPaths(){
+	//cout <<"***************************** PRINTING PATHS *****************************"<<endl;
+	int									noOfPassengers, tmpStatus;
+	double								tmpStartTime, tmpEndTime, tmpAccessTime, tmpEgressTime, noOfTransfers;
+	string								fileStr, tmpPassengerId;
+	map<string,passenger*>::iterator	tmpPassengerIter;
+	passenger*							passengerPntr;
+
+	noOfPassengers = 0;
+	ofstream	outFile4;
+	outFile4.open("paths.dat");
+	for(tmpPassengerIter=passengerSet.begin();tmpPassengerIter!=passengerSet.end();tmpPassengerIter++){
+		tmpPassengerId = (*tmpPassengerIter).first;
+		passengerPntr = NULL;
+		passengerPntr = passengerSet[tmpPassengerId];
+		tmpStatus = passengerPntr->getPassengerStatus();
+		if(tmpStatus==5){
+			tmpStartTime = passengerPntr->getStartTime();
+			tmpEndTime = passengerPntr->getEndTime();
+			tmpAccessTime = passengerPntr->getAccessTime();
+			tmpEgressTime = passengerPntr->getEgressTime();
+			noOfTransfers = passengerPntr->getNumUnlinkedTrips()-1;
+			outFile4 <<tmpPassengerId.substr(1,99)<<"\t"<<floor(100*tmpStartTime)/100.0<<"\t"<<floor(100*tmpEndTime)/100.0<<"\t"<<noOfTransfers<<"\t"<<floor(100*tmpAccessTime)/100.0<<"\t"<<floor(100*tmpEgressTime)/100.0<<endl;
+			noOfPassengers++;
+		}
+	}
+	outFile4.close();
+	return noOfPassengers;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////
+int		printUnlinkedTrips(){
+	//cout <<"*****************************PRINTING UNLINKED-TRIPS*****************************"<<endl;
+	int									i, noOfPassengers, tmpStatus, noOfUnlinkedTrips;
+	string								tmpPassengerId, tmpUnlinkedTripString, tmpTripId, tmpBoardingStop, tmpAlightingStop;
+	list<passenger*>::iterator			tmpPassengerListIter;
+	passenger*							tmpPassengerPntr;
+
+	ofstream outFile5;
+	outFile5.open("unlinkedTrips.dat");
+	//outFile2 <<"passengerId"<<endl;
+
+	noOfPassengers = 0;
+	for(tmpPassengerListIter=passengerList.begin();tmpPassengerListIter!=passengerList.end();tmpPassengerListIter++){
+		tmpPassengerPntr = NULL;
+		tmpPassengerPntr = *tmpPassengerListIter;
+		tmpPassengerId = tmpPassengerPntr->getPassengerId();
+		tmpStatus = tmpPassengerPntr->getPassengerStatus();
+		if(tmpStatus==5){
+			noOfUnlinkedTrips = tmpPassengerPntr->getNumUnlinkedTrips();
+			for(i=0;i<=noOfUnlinkedTrips-1;i++){
+				tmpUnlinkedTripString = tmpPassengerPntr->getUnlinkedTrip(i);
+				outFile5 <<tmpPassengerId.substr(1,999)<<"\t"<<i+1<<"\t"<<tmpUnlinkedTripString<<endl;
+			}
+			noOfPassengers++;
+		}
+	}
+	outFile5.close();
+	return noOfPassengers;
+}

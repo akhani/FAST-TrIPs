@@ -22,6 +22,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -------------------------------------------------------*/
 
+#include <omp.h>
 #include <time.h>
 #include <stdlib.h>
 using namespace std;
@@ -593,8 +594,8 @@ string		getBackwardPath(string _origin, string _destination, double _PDT, double
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThreads){
-	int								k, numThreads, tmpNumPassengers, tmpNumPaths;
-    double                          startTime, endTime, cpuTime;
+        int								k, numThreads, tmpNumPassengers, tmpNumPaths;
+        double                          startTime, endTime, cpuTime;
 
 	numThreads = _numThreads;
 	parallelizeStops(numThreads);
@@ -604,7 +605,13 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
 	cout <<"**************************** GENERATING PATHS ****************************"<<endl;
 	tmpNumPassengers = passengerSet.size();
 	tmpNumPaths = 0;
-    startTime = clock()*1.0/CLOCKS_PER_SEC;
+        startTime = clock()*1.0/CLOCKS_PER_SEC;
+
+        omp_set_dynamic(0);
+        omp_set_num_threads(numThreads);
+//        cout <<"getNumThreads = "<<omp_get_num_threads()<<endl;
+
+        #pragma omp parallel for
 	for(k=0;k<tmpNumPassengers;k++){
 		int					threadId, tmpNumIterations, tmpTourHalf, tmpStatus;
 		string				tmpPassengerId, tmpOriginTaz, tmpDestinationTaz, tmpPath;
@@ -612,7 +619,7 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
 		passenger*			passengerPntr;
 		map<string,passenger*>::iterator	tmpPassengerIter;
 
-		threadId = 0;
+		threadId = omp_get_thread_num();
 		tmpPassengerIter = passengerSet.begin();
 		advance(tmpPassengerIter, k);
 		if(tmpPassengerIter==passengerSet.end())	continue;
@@ -626,15 +633,15 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
 		if(tmpOriginTaz==tmpDestinationTaz)	continue;
 
 		tmpStatus = passengerPntr->getPassengerStatus();
-        if(_iter>1){
-            if(tmpStatus==5){
-                tmpNumPaths++;
-                continue;
-            }else{
-                passengerPntr->setAssignedPath("");
-                passengerPntr->setPassengerStatus(-1);
-            }
-        }
+                if(_iter>1){
+                    if(tmpStatus==5){
+                        tmpNumPaths++;
+                        continue;
+                    }else{
+                        passengerPntr->setAssignedPath("");
+                        passengerPntr->setPassengerStatus(-1);
+                    }
+                }
 		tmpPDT = passengerPntr->getPDT();
 		tmpPAT = passengerPntr->getPAT();
 		tmpTourHalf = passengerPntr->getTourHalf();
@@ -645,16 +652,18 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
 			tmpNumIterations = forwardTBSP(tmpOriginTaz, tmpDestinationTaz, tmpPDT, tmpPAT, _timeBuff, threadId);
 			tmpPath = getForwardPath(tmpOriginTaz, tmpDestinationTaz, tmpPDT, tmpPAT, threadId);
 		}
+                #pragma omp critical
 		if(tmpPath!="-101"){
 			passengerPntr->setAssignedPath(tmpPath);
 			tmpNumPaths++;
 		}
-        if(k%max(min(tmpNumPassengers/10,1000),10)==0){
-            endTime = clock()*1.0/CLOCKS_PER_SEC;
-            cpuTime = round(100 * (endTime - startTime))/100.0;
+                #pragma omp critical
+                if(k%max(min(tmpNumPassengers/10,1000),10)==0){
+                    endTime = clock()*1.0/CLOCKS_PER_SEC;
+                    cpuTime = round(100 * (endTime - startTime))/100.0;
 			cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
-		}
-	}
+                    }
+                }
     endTime = clock()*1.0/CLOCKS_PER_SEC;
     cpuTime = round(100 * (endTime - startTime))/100.0;
     cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;

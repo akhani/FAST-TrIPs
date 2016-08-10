@@ -27,8 +27,8 @@ limitations under the License.
 using namespace std;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-int			forwardTBHP(string _origin, double _PDT, int _timeBuffer){
-	int						i, j, numIterations, permanentLabel, tmpTransferStop;
+int			forwardTBHP(string _origin, double _PDT, int _timeBuffer, int _mode){
+	int						i, j, numIterations, permanentLabel, tmpTransferStop, tmpAccessType;
 	int						tmpNumAccess, tmpNumTransfers, tmpSeqNum, tmpMaxSeq;
 	double					tmpCurrentLabel, tmpEarliestArrival, tmpOldLabel, tmpNewLabel, tmpNewCost, tmpNonWalkLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
@@ -67,6 +67,9 @@ int			forwardTBHP(string _origin, double _PDT, int _timeBuffer){
 	tmpTazPntr->forwardStrategyUpdate(1, _PDT, "Start", 1);
 	tmpNumAccess = tmpTazPntr->getNumStops();
 	for(i=0;i<tmpNumAccess;i++){
+		tmpAccessType = tmpTazPntr->getAccessType(i);
+		if(_mode==3 && tmpAccessType==2) continue;
+		if(_mode==2 && tmpAccessType==1) continue;
 		tmpNewStop = tmpTazPntr->getStop(i);
 		tmpAccessTime = tmpTazPntr->getAccessTime(i);
 		tmpNewCost = 1 + originWalkEqv * tmpAccessTime;
@@ -194,6 +197,8 @@ int			forwardTBHP(string _origin, double _PDT, int _timeBuffer){
 		tmpTazPntr = *tmpTazListIter;
 		tmpNumAccess = tmpTazPntr->getNumStops();
 		for(i=0;i<tmpNumAccess;i++){
+			tmpAccessType = tmpTazPntr->getAccessType(i);
+			if(tmpAccessType==2) continue;
 			tmpOldLabel = tmpTazPntr->getStrategyLabel();
 			tmpNewStop = tmpTazPntr->getStop(i);
 			tmpAccessTime = tmpTazPntr->getAccessTime(i);
@@ -217,8 +222,8 @@ int			forwardTBHP(string _origin, double _PDT, int _timeBuffer){
 	return numIterations;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-int			backwardTBHP(string _destination, double _PAT, int _timeBuffer){
-	int						i, j, numIterations, permanentLabel, tmpTransferStop;;
+int			backwardTBHP(string _destination, double _PAT, int _timeBuffer, int _mode){
+	int						i, j, numIterations, permanentLabel, tmpTransferStop, tmpAccessType;
 	int						tmpNumAccess, tmpNumTransfers, tmpSeqNum;
 	double					tmpCurrentLabel, tmpLatestDeparture, tmpEarliestDeparture, tmpOldLabel, tmpNewLabel, tmpNewCost, tmpNonWalkLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
@@ -257,6 +262,8 @@ int			backwardTBHP(string _destination, double _PAT, int _timeBuffer){
 	tmpTazPntr->backwardStrategyUpdate(1, _PAT, "End", 1);
 	tmpNumAccess = tmpTazPntr->getNumStops();
 	for(i=0;i<tmpNumAccess;i++){
+		tmpAccessType = tmpTazPntr->getAccessType(i);
+		if(tmpAccessType==2) continue;
 		tmpNewStop = tmpTazPntr->getStop(i);
 		tmpAccessTime = tmpTazPntr->getAccessTime(i);
 		tmpNewCost = 1 + destinationWalkEqv * tmpAccessTime;
@@ -384,6 +391,9 @@ int			backwardTBHP(string _destination, double _PAT, int _timeBuffer){
 		tmpTazPntr = *tmpTazListIter;
 		tmpNumAccess = tmpTazPntr->getNumStops();
 		for(i=0;i<tmpNumAccess;i++){
+			tmpAccessType = tmpTazPntr->getAccessType(i);
+			if(_mode==3 && tmpAccessType==2) continue;
+			if(_mode==2 && tmpAccessType==1) continue;
 			tmpOldLabel = tmpTazPntr->getStrategyLabel();
 			tmpNewStop = tmpTazPntr->getStop(i);
 			tmpAccessTime = tmpTazPntr->getAccessTime(i);
@@ -573,14 +583,14 @@ string		getBackwardElementaryPath(string _origin, double _PDT){
 			tmpFirstTrip = tmpCurrentTrip;
 		}
 		if(i==1){
-            /*tmpStartTime = tripSet[tmpFirstTrip]->getSchDepartureByStop(tmpFirstStop) - accessTimes[tmpAccessLink];
+            tmpStartTime = tripSet[tmpFirstTrip]->getSchDepartureByStop(tmpFirstStop) - accessTimes[tmpAccessLink];
             sprintf(chr,"%d",int(100*tmpStartTime));
             tmpIn = string(chr);
             tmpStrLen = tmpStr.length();
 			tmpPath = tmpStr.substr(0,max(0,tmpStrLen-2)) + ".";
 			//cout <<tmpStartTime<<"\t"<<chr<<"\t"<<tmpIn<<"\t"<<tmpStrLen<<"\t"<<tmpPath<<"\t";
             if(tmpStrLen<2)			tmpPath = tmpPath + "0";
-			tmpPath = tmpPath + tmpStr.substr(max(0,tmpStrLen-2),2);*/
+			tmpPath = tmpPath + tmpStr.substr(max(0,tmpStrLen-2),2);
 		}
 		if(tmpCurrentTrip=="Egress"){
 			tmpAccessLink = tmpNewStop + "," + tmpCurrentStop;		
@@ -643,14 +653,20 @@ int		disaggregateStochasticAssignment(int _iter, int _timeBuff, int _numThreads)
 	tmpNumPassengers = passengerSet.size();
 	tmpNumPaths = 0;
     startTime = clock()*1.0/CLOCKS_PER_SEC;
+	
+	omp_set_dynamic(0);
+    omp_set_num_threads(numThreads);
+//    cout <<"getNumThreads = "<<omp_get_num_threads()<<endl;
+
+    #pragma omp parallel for //num_threads(numThreads)
 	for(k=0;k<tmpNumPassengers;k++){
-		int					                threadId, tmpNumIterations, tmpTourHalf, tmpStatus, m;
+		int					                threadId, tmpNumIterations, tmpTourHalf, tmpStatus, m, tmpMode;
 		string				                tmpPassengerId, tmpOriginTaz, tmpDestinationTaz, tmpPath;
 		double				                tmpPDT, tmpPAT;
 		passenger*			                passengerPntr;
 		map<string,passenger*>::iterator	tmpPassengerIter;
 
-		threadId = 0;
+		threadId = omp_get_thread_num();
 		tmpPassengerIter = passengerSet.begin();
 		advance(tmpPassengerIter, k);
 		if(tmpPassengerIter==passengerSet.end())	continue;
@@ -676,8 +692,9 @@ int		disaggregateStochasticAssignment(int _iter, int _timeBuff, int _numThreads)
 		tmpPDT = passengerPntr->getPDT();
 		tmpPAT = passengerPntr->getPAT();
 		tmpTourHalf = passengerPntr->getTourHalf();
+		tmpMode = passengerPntr->getMode();
 		if(tmpTourHalf==1){
-			tmpNumIterations = backwardTBHP(tmpDestinationTaz, tmpPAT, _timeBuff);
+			tmpNumIterations = backwardTBHP(tmpDestinationTaz, tmpPAT, _timeBuff, tmpMode);
 			m = 0;
 			while(1){
 				tmpPath = getBackwardElementaryPath(tmpOriginTaz, tmpPDT);
@@ -687,7 +704,7 @@ int		disaggregateStochasticAssignment(int _iter, int _timeBuff, int _numThreads)
 				}
 			}
 		}else if(tmpTourHalf==2){
-			tmpNumIterations = forwardTBHP(tmpOriginTaz, tmpPDT, _timeBuff);
+			tmpNumIterations = forwardTBHP(tmpOriginTaz, tmpPDT, _timeBuff, tmpMode);
 			m = 0;
 			while(1){
 				tmpPath = getForwardElementaryPath(tmpDestinationTaz, tmpPAT);
@@ -697,10 +714,12 @@ int		disaggregateStochasticAssignment(int _iter, int _timeBuff, int _numThreads)
 				}
 			}
 		}
+		#pragma omp critical
 		if(tmpPath!="-101"){
 			passengerPntr->setAssignedPath(tmpPath);
 			tmpNumPaths++;
 		}
+		#pragma omp critical
         if(k%max(min(tmpNumPassengers/10,1000),10)==0){
             endTime = clock()*1.0/CLOCKS_PER_SEC;
             cpuTime = round(100 * (endTime - startTime))/100.0;
@@ -725,6 +744,10 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
 	parallelizeTazs(numThreads);
 	parallelizeTrips(numThreads);
 
+    ofstream    logFile;
+    logFile.open("ft_log.txt");
+    logFile <<"Started assignment at: "<<getTime()<<endl;
+
     ofstream	outFile;
     if(_printPassengersFlag==1){
         if(_iter==1){
@@ -740,14 +763,20 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
 	startTime = clock()*1.0/CLOCKS_PER_SEC;
 	tmpNumPassengers = passengerSet.size();
 	tmpNumPaths = 0;
+        
+    omp_set_dynamic(0);
+    omp_set_num_threads(numThreads);
+//    cout <<"getNumThreads = "<<omp_get_num_threads()<<endl;
+
+    #pragma omp parallel for //num_threads(numThreads)
 	for(k=0;k<tmpNumPassengers;k++){
-		int									threadId, tmpNumIterations, tmpTourHalf, tmpStatus, n;
+		int									threadId, tmpNumIterations, tmpTourHalf, tmpStatus, n, tmpMode;
 		string								tmpPassengerId, tmpOriginTaz, tmpDestinationTaz, tmpPath;
 		double								tmpPDT, tmpPAT;
 		passenger*							passengerPntr;
 		map<string,passenger*>::iterator	tmpPassengerIter;
 
-		threadId = 0;
+		threadId = omp_get_thread_num();;
 		tmpPassengerIter = passengerSet.begin();
 		advance(tmpPassengerIter, k);
 		if(tmpPassengerIter==passengerSet.end())	continue;
@@ -784,9 +813,10 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
 		tmpPDT = passengerPntr->getPDT();
 		tmpPAT = passengerPntr->getPAT();
 		tmpTourHalf = passengerPntr->getTourHalf();
+		tmpMode = passengerPntr->getMode();
 		tmpPathSet.clear();
         if (tmpTourHalf==1){
-            tmpNumIterations = backwardTBHP(tmpDestinationTaz, tmpPAT, _timeBuff);
+            tmpNumIterations = backwardTBHP(tmpDestinationTaz, tmpPAT, _timeBuff, tmpMode);
             for (n=1;n<=1000;n++){
                 tmpPath = getBackwardElementaryPath(tmpOriginTaz, tmpPDT);
                 if(tmpPath!="-101"){
@@ -800,7 +830,7 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
                 }
             }
 		}else{
-            tmpNumIterations = forwardTBHP(tmpOriginTaz, tmpPDT, _timeBuff);
+            tmpNumIterations = forwardTBHP(tmpOriginTaz, tmpPDT, _timeBuff, tmpMode);
             for (n=1;n<=1000;n++){
                 tmpPath = getForwardElementaryPath(tmpDestinationTaz, tmpPAT);
                 if(tmpPath!="-101"){
@@ -823,22 +853,29 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
 
         passengerPntr->analyzePaths();
         tmpPath = passengerPntr->assignPath();
+		#pragma omp critical
 		if(tmpPath!="-101"){
 			passengerPntr->setAssignedPath(tmpPath);
 			tmpNumPaths++;
 		}
 
+		#pragma omp critical
         if(k%max(min(tmpNumPassengers/10,1000),10)==0){
             endTime = clock()*1.0/CLOCKS_PER_SEC;
             cpuTime = round(100 * (endTime - startTime))/100.0;
 			cout <<k<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+                    logFile <<k<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
 		}
 	}
     endTime = clock()*1.0/CLOCKS_PER_SEC;
     cpuTime = round(100 * (endTime - startTime))/100.0;
     cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    logFile <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
     if(_printPassengersFlag==1){
        outFile.close();
     }
+    logFile <<"Finished assignment at: "<<getTime()<<endl;
+    logFile.close();
 	return tmpNumPaths;
 }
+

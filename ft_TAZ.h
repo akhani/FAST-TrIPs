@@ -41,6 +41,7 @@ protected:
 	vector<string>			tazStops;
 	vector<double>			tazAccessDistances;
 	vector<double>			tazAccessTimes;
+	vector<int>				tazAccessTypes;
 
 	//For TBSP
 	vector<double>			tazLabels;
@@ -71,6 +72,7 @@ public:
 	int						getNumStops();
 	string					getStop(int _i);
 	double					getAccessTime(int _i);
+	int					getAccessType(int _i);
 	void					forwardUpdate(double _label, double _arrival, string _predecessor, int _threadId);
 	void					backwardUpdate(double _label, double _departure, string _successor, int _threadId);
 	double					getLabel(int _threadId);
@@ -98,7 +100,9 @@ int			readAccessLinks();
 int			parallelizeTazs(int _numThreads);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 int			readTAZs(){
-	int				tmpNumZones;
+    cout <<"reading TAZs:\t\t\t";
+
+        int				tmpNumZones;
 	string			tmpIn, buf, tmpTazId;
 	vector<string>	tokens;
 	taz*			tmpTazPntr;
@@ -113,7 +117,7 @@ int			readTAZs(){
 	tmpNumZones = 0;
 	buf.clear();
 	tokens.clear();
-	getline(inFile,tmpIn);
+	//getline(inFile,tmpIn);
 	while(!inFile.eof()){
 		buf.clear();
 		tokens.clear();
@@ -138,7 +142,9 @@ int			readTAZs(){
 	return tmpNumZones;
 }
 int			readAccessLinks(){
-	int				numAccessLinks;
+    cout <<"reading access links:\t\t";
+
+        int				numAccessLinks;
 	string			tmpIn, buf, tmpTazId, tmpStopId;
 	vector<string>	tokens;
 	taz*			tmpTazPntr;
@@ -151,7 +157,7 @@ int			readAccessLinks(){
 		exit(1);
 	}
 	numAccessLinks=0;
-	getline(inFile,tmpIn);
+	//getline(inFile,tmpIn);
 	while (!inFile.eof()){
 		buf.clear();
 		tokens.clear();
@@ -219,6 +225,7 @@ void		taz::attachNode(string _tmpIn){
 }
 void		taz::attachStop(string _tmpIn){
 	string			buf, tmpStop;
+	int			tmpAccessType;
 	vector<string>	tokens;
 	double			tmpAccessDist, tmpAccessTime;
 
@@ -232,9 +239,11 @@ void		taz::attachStop(string _tmpIn){
 	tmpStop.append(tokens[1]);
 	tmpAccessDist = atof(tokens[2].c_str());
 	tmpAccessTime = atof(tokens[3].c_str());
+	tmpAccessType = atoi(tokens[4].c_str());
 	tazStops.push_back(tmpStop);
 	tazAccessDistances.push_back(tmpAccessDist);
 	tazAccessTimes.push_back(tmpAccessTime);
+	tazAccessTypes.push_back(tmpAccessType);
 }
 void		taz::parallelize(int _numThreads){
 	int		tmpCntr;
@@ -274,6 +283,9 @@ string		taz::getStop(int _i){
 }
 double		taz::getAccessTime(int _i){
 	return this->tazAccessTimes[_i];
+}
+int		taz::getAccessType(int _i){
+	return this->tazAccessTypes[_i];
 }
 void		taz::forwardUpdate(double _label, double _arrival, string _predecessor, int _threadId){
 	tazLabels[_threadId] = _label;

@@ -6,7 +6,7 @@ Code primarily written by Alireza Khani
 Under supervision of Mark Hickman
 
 Contact:
-    Alireza Khani:  akhani@utexas.edu or akhani@email.arizona.edu
+    Alireza Khani:  akhani@umn.edu
     Mark Hickman:   m.hickman1@uq.edu.au
 -------------------------------------------------------
 you may not use this file except in compliance with the License.

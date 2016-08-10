@@ -119,6 +119,8 @@ list<trip*>				tripList;
 list<string>			eventList;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 int		readTrips(){
+    cout <<"reading trips:\t\t\t";
+
 	string			tmpIn, buf, tmpTripId, tmpRouteId;
 	vector<string>	tokens;
 	trip*			tmpTripPntr;
@@ -130,7 +132,7 @@ int		readTrips(){
 		exit(1);
 	}
 
-	getline(inFile,tmpIn);
+	//getline(inFile,tmpIn);
 	while(!inFile.eof()){
 		buf.clear();
 		tokens.clear();
@@ -156,7 +158,9 @@ int		readTrips(){
 	return tripSet.size();
 }
 int		readStopTimes(){
-	string						tmpIn, buf, tmpTripId, tmpStopId, tmpRouteId, tmpStr, tmpEventStr, tripDirection;
+    cout <<"reading stop-times:\t\t";
+
+        string						tmpIn, buf, tmpTripId, tmpStopId, tmpRouteId, tmpStr, tmpEventStr, tripDirection;
 	int							numStopTimes, tmpTime;
 	vector<string>				tokens;
 	list<stop*>::iterator		tmpStopListIter;
@@ -171,7 +175,7 @@ int		readStopTimes(){
 		cerr << "Unable to open file ft_input_stopTimes.dat";
 		exit(1);
 	}
-	getline(inFile,tmpIn);
+	//getline(inFile,tmpIn);
 	numStopTimes = 0;
 	while (!inFile.eof()){
 		buf.clear();

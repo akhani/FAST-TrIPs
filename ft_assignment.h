@@ -33,11 +33,13 @@ int		iterationFlag,	    	//{1, 2, ...}
 		transitTrajectoryFlag,	//{0, 1}
 		skimFlag,				//{0, 1}
 		skimStartTime,			//[0, 1440]
-		skimEndTime				//[0, 1440]
+		skimEndTime,				//[0, 1440]
+                numThreads              //{1,20};
 		;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 void	readParameters(){
-	string			tmpIn, buf;
+    cout <<"reading parameters"<<endl;
+        string			tmpIn, buf;
 	vector<string>	tokens;
 	ifstream inFile;
 	inFile.open("ft_input_parameters.dat");
@@ -106,7 +108,7 @@ void	readParameters(){
 		cout <<"ERROR -	SWITCH FOR SKIM GENERATION SHOULD BE ON WHEN PATH MODEL PARAMETER IS 9"<<endl;
 		exit(1);
 	}
-
+        
 	/*skimStartTime = atoi(tokens[7].c_str());
 	if(skimStartTime<0 || skimStartTime>1410){
 		cout <<"ERROR -	BEGINNING OF SKIM TIME PERIOD"<<endl;
@@ -122,9 +124,25 @@ void	readParameters(){
 		cout <<"ERROR -	SKIM TIME PERIOD"<<endl;
 		exit(1);
 	}*/
+        
+        if(tokens.size()>9){
+            numThreads = atoi(tokens[9].c_str());
+            if(numThreads<1 || numThreads>20){
+	        cout <<"ERROR - # OF THREADS SHOULD BE GREATER THAN 0, LESS THAN 20 and LESS THAN THE NUMBER OF CORES"<<endl;
+                cout <<"DEFAULT VALUE OF 1 IS BEING USED FOR THE NUMBER OF THREADS!"<<endl;
+                numThreads = 1;
+	    }
+        }else{
+            numThreads = 1;
+            cout <<"DEFAULT VALUE OF 1 IS BEING USED FOR THE NUMBER OF THREADS!"<<endl;
+        }
+        if(pathModelFlag!=1){
+            numThreads = 1;
+        }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 void	readRouteChoiceModel(){
+    cout <<"reading route choice"<<endl;
 	string			tmpIn, buf;
 	vector<string>	tokens;
 	ifstream inFile;
@@ -157,6 +175,8 @@ void	readRouteChoiceModel(){
 	VOT = atof(tokens[8].c_str());
 	theta = atof(tokens[9].c_str());
 	capacityConstraint = atoi(tokens[10].c_str());
+
+	railInVehTimeEqv = atoi(tokens[11].c_str());
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 void		passengerAssignment(){
@@ -173,13 +193,17 @@ void		passengerAssignment(){
         cout <<"***************************** ITERATION "<<iter<<" **************************************"<<endl;
         outFile <<"***************************** ITERATION "<<iter<<" **************************************"<<endl;
 
+        numAssignedPassengers = 0;
+        numArrivedPassengers = 0;
+        numMissedPassengers = 0;
+
         if(pathModelFlag == 0){
-            readExistingPaths();
+            numAssignedPassengers = readExistingPaths();
         }else if(pathModelFlag==1){
-            numAssignedPassengers = disaggregateDeterministicAssignment(iter, pathTimeBuffer, 1);
+            numAssignedPassengers = disaggregateDeterministicAssignment(iter, pathTimeBuffer, numThreads);
         }else if(pathModelFlag==2){
-            //numAssignedPassengers = disaggregateStochasticAssignment(iter, pathTimeBuffer, 1);
-            numAssignedPassengers = pathBasedStochasticAssignment(iter, pathTimeBuffer, printPassengersFlag, 1);
+            //numAssignedPassengers = disaggregateStochasticAssignment(iter, pathTimeBuffer, numThreads);
+            numAssignedPassengers = pathBasedStochasticAssignment(iter, pathTimeBuffer, printPassengersFlag, numThreads);
         }
 
         if(simulationFlag==1){
@@ -191,6 +215,8 @@ void		passengerAssignment(){
         if(printPassengersFlag==1){
             printPassengerPaths();
             printPassengerTimes();
+            printPaths();
+            printUnlinkedTrips();
         }
 
         capacityGap = 100.0*numMissedPassengers/(numArrivedPassengers+numMissedPassengers);
@@ -210,4 +236,5 @@ void		passengerAssignment(){
 
 	outFile <<"************************************* END **************************************"<<endl;
 	outFile.close();
+	cout <<"FAST-TrIPs run completed successfully"<<endl;
 }

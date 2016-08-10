@@ -44,6 +44,7 @@ public:
 	void						attachTrip(string _tripId);
 	int							getNumTrips();
 	string						getTripId(int _i);
+	int							getRouteType();
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 map<string,route*>				routeSet;
@@ -51,7 +52,9 @@ map<string,route*>				routeSet;
 int	readRoutes();
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 int		readRoutes(){
-	string			tmpIn, tmpRouteId, buf;
+    cout <<"reading routes:\t\t\t";
+
+        string			tmpIn, tmpRouteId, buf;
 	vector<string>	tokens;
 
 	ifstream inFile;
@@ -61,7 +64,7 @@ int		readRoutes(){
 		exit(1);
 	}
 
-	getline(inFile,tmpIn);
+	//getline(inFile,tmpIn);
 	while (!inFile.eof()){
 		buf.clear();
 		tokens.clear();
@@ -101,4 +104,7 @@ int		route::getNumTrips(){
 }
 string	route::getTripId(int _i){
 	return this->routeTrips[_i];
+}
+int	route::getRouteType(){
+	return this->routeType;
 }
