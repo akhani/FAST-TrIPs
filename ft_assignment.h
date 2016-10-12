@@ -134,7 +134,7 @@ void	readParameters(){
 	    }
         }else{
             numThreads = 1;
-            cout <<"DEFAULT VALUE OF 1 IS BEING USED FOR THE NUMBER OF THREADS!"<<endl;
+            cout <<"It seems that multithreading is not available for stochastic assignment!\n DEFAULT VALUE OF 1 IS BEING USED FOR THE NUMBER OF THREADS!"<<endl;
         }
         if(pathModelFlag!=1){
             numThreads = 1;

@@ -585,10 +585,9 @@ string		getBackwardElementaryPath(string _origin, double _PDT){
 		if(i==1){
             tmpStartTime = tripSet[tmpFirstTrip]->getSchDepartureByStop(tmpFirstStop) - accessTimes[tmpAccessLink];
             sprintf(chr,"%d",int(100*tmpStartTime));
-            tmpIn = string(chr);
+			tmpStr = string(chr);
             tmpStrLen = tmpStr.length();
 			tmpPath = tmpStr.substr(0,max(0,tmpStrLen-2)) + ".";
-			//cout <<tmpStartTime<<"\t"<<chr<<"\t"<<tmpIn<<"\t"<<tmpStrLen<<"\t"<<tmpPath<<"\t";
             if(tmpStrLen<2)			tmpPath = tmpPath + "0";
 			tmpPath = tmpPath + tmpStr.substr(max(0,tmpStrLen-2),2);
 		}
@@ -752,7 +751,7 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
     if(_printPassengersFlag==1){
         if(_iter==1){
             outFile.open("ft_output_choiceSet.dat");
-            outFile <<"passengerId\torigin\tdestination\tnumOfOccur\tpath"<<endl;
+            //outFile <<"passengerId\torigin\tdestination\tnumOfOccur\tpath"<<endl;
         }else{
             outFile.open("ft_output_choiceSet.dat",ofstream::app);
             outFile <<"ITERATION "<<_iter<<endl;
