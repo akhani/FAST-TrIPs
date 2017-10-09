@@ -34,7 +34,7 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 	double					tmpCurrentLabel, tmpCurrentArrival, tmpOldLabel, tmpNewLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
 	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpMode;
-	char					chr[99];
+	char					chr[999];
 	vector<string>			tokens;
 	list<taz*>::iterator	tmpTazListIter;
 	taz*					tmpTazPntr;
@@ -89,7 +89,7 @@ int			forwardTBSP(string _origin, string _destination, double _PDT, double _PAT,
 	while(stopQueue.size()>0){
 		tmpStr = stopQueue.top();
 		stopQueue.pop();
-		tmpCurrentStop = tmpStr.substr(6,99);
+		tmpCurrentStop = tmpStr.substr(6,999);
 		tmpStopPntr = NULL;
 		tmpStopPntr = stopSet[tmpCurrentStop];
 		tmpCurrentLabel = tmpStopPntr->getLabel(_threadId);
@@ -195,7 +195,7 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 	double					tmpCurrentLabel, tmpCurrentDeparture, tmpOldLabel, tmpNewLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
 	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpMode;
-	char					chr[99];
+	char					chr[999];
 	vector<string>			tokens;
 	list<taz*>::iterator	tmpTazListIter;
 	taz*					tmpTazPntr;
@@ -250,7 +250,7 @@ int			backwardTBSP(string _origin, string _destination, double _PDT, double _PAT
 	while(stopQueue.size()>0){
 		tmpStr = stopQueue.top();
 		stopQueue.pop();
-		tmpCurrentStop = tmpStr.substr(6,99);
+		tmpCurrentStop = tmpStr.substr(6,999);
 		tmpStopPntr = NULL;
 		tmpStopPntr = stopSet[tmpCurrentStop];
 		tmpCurrentLabel = tmpStopPntr->getLabel(_threadId);
@@ -380,7 +380,7 @@ string		getForwardPath(string _origin, string _destination, double _PDT, double 
 	string		tmpIn, tmpCurrentStop, tmpNewStop, tmpCurrentTrip, tmpAccessLink, tmpTransferLink, tmpLastTrip, tmpFirstTrip, tmpFirstStop;
 	double		tmpStartTime, tmpTransferTime;
 	string		tmpStr, tmpBoardingStops, tmpAlightingStops, tmpTrips, tmpWalkingTimes, tmpPath, tmpDepartureTime;
-	char		chr[99];
+	char		chr[999];
 
     //For Available capacity
     string      tmpFromToAt;
@@ -505,7 +505,7 @@ string		getBackwardPath(string _origin, string _destination, double _PDT, double
 	string		tmpIn, tmpStr, tmpCurrentStop, tmpNewStop, tmpCurrentTrip, tmpAccessLink, tmpTransferLink, tmpLastTrip;
 	double		tmpStartTime, tmpTransferTime, tmpHeadway;
 	string		tmpBoardingStops, tmpAlightingStops, tmpTrips, tmpWalkingTimes, tmpPath;
-	char		chr[99];
+	char		chr[999];
 
 	tmpCurrentStop = tazSet[_origin]->getSuccessor(_threadId);
 	if(tmpCurrentStop=="-101"){
@@ -602,6 +602,10 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
 	parallelizeTazs(numThreads);
 	parallelizeTrips(numThreads);
 
+    ofstream    logFile;
+    logFile.open("ft_log.txt");
+    logFile <<"Started deterministic assignment at: "<<getTime()<<endl;
+
 	cout <<"**************************** GENERATING PATHS ****************************"<<endl;
 	tmpNumPassengers = passengerSet.size();
 	tmpNumPaths = 0;
@@ -661,11 +665,18 @@ int	disaggregateDeterministicAssignment(int _iter, int _timeBuff, int _numThread
                 if(k%max(min(tmpNumPassengers/10,1000),10)==0){
                     endTime = clock()*1.0/CLOCKS_PER_SEC;
                     cpuTime = round(100 * (endTime - startTime))/100.0;
-			cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+			//cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+            cout <<k<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+            logFile <<k<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
                     }
                 }
     endTime = clock()*1.0/CLOCKS_PER_SEC;
     cpuTime = round(100 * (endTime - startTime))/100.0;
-    cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    //cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    //logFile <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    cout <<tmpNumPassengers<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    logFile <<tmpNumPassengers<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    logFile <<"Finished assignment at: "<<getTime()<<endl;
+    logFile.close();
 	return tmpNumPaths;
 }

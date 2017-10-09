@@ -95,6 +95,7 @@ public:
 	void			setPassengerStatus(int	_status);
 	int				getPassengerStatus();
 	void			increasePathIndex();
+	void			decreasePathIndex();
 	void			setEndTime(double _endTime);
 	double			getEndTime();
 	string			getCurrentBoardingStopId();
@@ -171,6 +172,8 @@ int			readPassengers(){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 int			readExistingPaths(){
+    cout <<"reading paths:\t\t\t";
+
 	int				tmpNumPaths;
 	string			tmpIn, buf, tmpPassengerId, tmpPath;
 	vector<string>	tokens;
@@ -195,7 +198,7 @@ int			readExistingPaths(){
 		}
 		tmpPassengerId = "p";
 		tmpPassengerId.append(tokens[0]);
-		tmpPath = tokens[4] + "\t" + tokens[5] + "\t" + tokens[6] + "\t" +  tokens[7] + "\t" + tokens[8];
+        tmpPath = tokens[4] + "\t" + tokens[5] + "\t" + tokens[6] + "\t" +  tokens[7] + "\t" + tokens[8];
 		passengerSet[tmpPassengerId]->setAssignedPath(tmpPath);
 		tmpNumPaths++;
 	}
@@ -206,7 +209,7 @@ int			readExistingPaths(){
 void		passenger::initializePassenger(string _tmpIn){
 	string				buf, tmpStr;
 	vector<string>		tokens;
-	char				chr[99];
+	char				chr[999];
 
 	passengerString = _tmpIn;
 	buf.clear();
@@ -356,6 +359,9 @@ int			passenger::getPassengerStatus(){
 void		passenger::increasePathIndex(){
 	passengerPathIndex = passengerPathIndex + 1;
 }
+void		passenger::decreasePathIndex(){
+	passengerPathIndex = passengerPathIndex - 1;
+}
 void		passenger::setEndTime(double _endTime){
 	endTime = _endTime;
 }
@@ -411,7 +417,7 @@ double		passenger::getAlightingTime(){
 string		passenger::getExperiencedPath(){
 	int		i;
 	string	tmpExperiencedPath, tmpArrivalTimes, tmpBoardingTimes, tmpAlightingTimes;
-	char	chr[99];
+	char	chr[999];
 	for(i=0;i<experiencedArrivalTimes.size();i++){
 		if(i!=0){
 			tmpArrivalTimes.append(",");
@@ -439,14 +445,14 @@ string		passenger::getExperiencedPath(){
 		sprintf(chr,"%d",int(100*experiencedAlightingTimes[i])%100);
         tmpAlightingTimes.append(string(chr));
     }
-	tmpExperiencedPath = passengerId.substr(1,99);
+	tmpExperiencedPath = passengerId.substr(1,999);
 	tmpExperiencedPath.append("\t");
     sprintf(chr,"%d",passengerMode);
     tmpExperiencedPath.append(string(chr));
 	tmpExperiencedPath.append("\t");
-	tmpExperiencedPath.append(passengerOriginTAZ.substr(1,99));
+	tmpExperiencedPath.append(passengerOriginTAZ.substr(1,999));
 	tmpExperiencedPath.append("\t");
-	tmpExperiencedPath.append(passengerDestinationTAZ.substr(1,99));
+	tmpExperiencedPath.append(passengerDestinationTAZ.substr(1,999));
 	tmpExperiencedPath.append("\t");
     sprintf(chr,"%d",int(100*startTime)/100);
 	tmpExperiencedPath.append(string(chr));
@@ -572,23 +578,23 @@ void    passenger::analyzePaths(){
         EGD = atof(tmpWalkings[tmpWalkings.size()-1].c_str());
         TRD = 0;
         if(passengerTourHalf==1){
-            ScDelay = passengerPAT - passengerPAT; //should be fixed
+            ScDelay = 0;//passengerPAT - passengerPAT; //should be fixed
         }else{
-            ScDelay = atof(tmpStartTime.c_str()) - passengerPDT;
+            ScDelay = 0;//atof(tmpStartTime.c_str()) - passengerPDT;
         }
         FARE = 0;
         pathCapacity[(*pathIter).first] = 1;
         
         for (n=0;n<tmpTrips.size();n++){
             if(routeComb==""){
-                routeComb = tripSet[tmpTrips[n]]->getRouteId().substr(1,99);
+                routeComb = tripSet[tmpTrips[n]]->getRouteId().substr(1,999);
             }else{
-                routeComb = routeComb + "," + tripSet[tmpTrips[n]]->getRouteId().substr(1,99);
+                routeComb = routeComb + "," + tripSet[tmpTrips[n]]->getRouteId().substr(1,999);
             }
             if(tripComb==""){
-                tripComb = tmpTrips[n].substr(1,99);
+                tripComb = tmpTrips[n].substr(1,999);
             }else{
-                tripComb = tripComb + "," + tmpTrips[n].substr(1,99);
+                tripComb = tripComb + "," + tmpTrips[n].substr(1,999);
             }
 
             routeId = tripSet[tmpTrips[n]]->getRouteId();
@@ -609,8 +615,23 @@ void    passenger::analyzePaths(){
                 TRT = TRT + tripSet[tmpTrips[n]]->getSchDepartureByStop(tmpBoardings[n]) - tripSet[tmpTrips[n-1]]->getSchArrivalByStop(tmpAlightings[n-1]) - atof(tmpWalkings[n].c_str());
                 TRD = TRD + atof(tmpWalkings[n].c_str());
             }
-            FARE = FARE + 1.0;
-            if ((tripSet[tmpTrips[n]]->getRouteId()).length()>3 && (tripSet[tmpTrips[n]]->getRouteId()).substr(1,1)=="9") FARE = FARE + 1.50;
+            
+            //This is for Austin TX network with fare=$1.0 per boarding without transfer credit.
+            //FARE = FARE + 1.0;
+            //if ((tripSet[tmpTrips[n]]->getRouteId()).length()>3 && (tripSet[tmpTrips[n]]->getRouteId()).substr(1,1)=="9") FARE = FARE + 1.50;
+            //This is for Twin Cities MN network with fare is defined per route type and 2.5 hours transfer credit.
+            if(n==0){
+                if (routeSet[routeId]->getRouteFare()==-1.0){
+                    if (routeType==0) FARE = FARE + 1.75; //LRT
+                    if (routeType==2) FARE = FARE + 3.0; //Northstar
+                    if (routeType==3) FARE = FARE + 1.75; //Local buses
+                    if (routeType==3 && routeId.length()>3) FARE = FARE + 0.5; //Express buses
+                    //Shuttle routes
+                }else{
+                    FARE = routeSet[routeId]->getRouteFare();
+                }
+            }
+            
             if(n==0){
                 tmpFromToAt = "Access," + tmpTrips[n] + "," + tmpBoardings[n];
                 if(availableCapacity2.find(tmpFromToAt)!=availableCapacity2.end()){
@@ -716,7 +737,7 @@ double	passenger::getEgressTime(){
 }
 string passenger::getUnlinkedTrip(int _i){
 	string tmpUnlinkedTrip, tmpStr;
-	char	chr[99];
+	char	chr[999];
 
 	tmpUnlinkedTrip = this->trips[_i].substr(1,999) + "\t" + this->boardingStops[_i].substr(1,999) + "\t" + this->alightingStops[_i].substr(1,999);
 

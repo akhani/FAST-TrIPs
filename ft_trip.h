@@ -28,6 +28,7 @@ limitations under the License.
 #include <sstream>
 #include <vector>
 #include <map>
+#include <algorithm>
 using namespace std;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 class	trip{
@@ -112,6 +113,9 @@ public:
 	void				setDwellTime(int _dwellTime);
 	int					getDwellTime(int _seq);
 	void				setResidualCapacity(int _residualCapacity);
+    
+    //For Beijing Metro
+    int                 getTripLength();
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 map<string,trip*>		tripSet;
@@ -167,7 +171,7 @@ int		readStopTimes(){
 	list<trip*>::iterator		tmpTripListIter;
 	stop*						tmpStopPntr;
 	trip*						tmpTripPntr;
-	char						chr[99];
+	char						chr[999];
 
 	ifstream inFile;
 	inFile.open("ft_input_stopTimes.dat");
@@ -218,7 +222,7 @@ int		readStopTimes(){
 	}
 	inFile.close();
 	eventList.sort();
-
+    
 	//To Calculate Headway
 	for(tmpTripListIter=tripList.begin();tmpTripListIter!=tripList.end();tmpTripListIter++){
 		tmpTripPntr = (*tmpTripListIter);
@@ -472,4 +476,7 @@ int		trip::getDwellTime(int _seq){
 }
 void		trip::setResidualCapacity(int _residualCapacity){
 	tripResidualCapacity.push_back(tripCapacity - passengers.size());
+}
+int         trip::getTripLength(){
+    return this->tripStops.size();
 }

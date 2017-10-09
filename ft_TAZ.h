@@ -347,7 +347,7 @@ string		taz::getForwardAssignedAlternative(double _departureTime){
 	int				i, j, tmpAltProb, tmpMaxProb, tmpRandNum;
 	vector<string>	tmpAlternatives;
 	vector<int>		tmpAltProbabilities;
-	char			chr[99];
+	char			chr[999];
 
 	if(tazArrivals.size()==0)		return "-101";
 	j=-1;
@@ -376,7 +376,7 @@ string		taz::getBackwardAssignedAlternative(double _arrivalTime){
 	int				i, j, tmpAltProb, tmpMaxProb, tmpRandNum;
 	vector<string>	tmpAlternatives;
 	vector<int>		tmpAltProbabilities;
-	char			chr[99];
+	char			chr[999];
 
 	if(tazDepartures.size()==0)		return "-101";
 	j=-1;

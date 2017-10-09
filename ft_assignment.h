@@ -199,6 +199,7 @@ void		passengerAssignment(){
 
         if(pathModelFlag == 0){
             numAssignedPassengers = readExistingPaths();
+            cout <<numAssignedPassengers<<"\t Paths"<<endl;
         }else if(pathModelFlag==1){
             numAssignedPassengers = disaggregateDeterministicAssignment(iter, pathTimeBuffer, numThreads);
         }else if(pathModelFlag==2){
@@ -208,7 +209,7 @@ void		passengerAssignment(){
 
         if(simulationFlag==1){
             cout <<"****************************** SIMULATING *****************************"<<endl;
-            numArrivedPassengers = simulation();
+            numArrivedPassengers = simulation(pathModelFlag);
             numMissedPassengers = numAssignedPassengers - numArrivedPassengers;
         }
 

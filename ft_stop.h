@@ -465,7 +465,7 @@ string		stop::getForwardAccessibleTrips(double _arrival, int _timeBuffer){
 	int			i, tmpSeq;
 	double		tmpSchDeparture;
 	string		tmpTrip, tmpAccessibleTrips;
-	char		chr[99];
+	char		chr[999];
 
 	tmpAccessibleTrips = "";
 	for(i=0;i<stopTrips.size();i++){
@@ -486,7 +486,7 @@ string		stop::getBackwardAccessibleTrips(double _departure, int _timeBuffer){
 	int			i, tmpSeq;
 	double		tmpSchArrival;
 	string		tmpTrip, tmpAccessibleTrips;
-	char		chr[99];
+	char		chr[999];
 
 	tmpAccessibleTrips = "";
 	for(i=0;i<stopTrips.size();i++){
@@ -661,7 +661,7 @@ string		stop::getForwardAssignedAlternative(double _departureTime, string _lastT
 	double			tmpLogsum;
 	vector<string>	tmpAlternatives;
 	vector<int>		tmpAltProbabilities;
-	char			chr1[99], chr2[99];
+	char			chr1[999], chr2[999];
 
 	if(stopArrivals.size()==0){
 		//cout <<"SC1"<<endl;
@@ -725,7 +725,7 @@ string		stop::getBackwardAssignedAlternative(double _arrivalTime, string _lastTr
 	double			tmpLogsum;
 	vector<string>	tmpAlternatives;
 	vector<int>		tmpAltProbabilities;
-	char			chr1[99], chr2[99];
+	char			chr1[999], chr2[999];
 
 	if(stopDepartures.size()==0){
 		//cout <<"SC1"<<endl;

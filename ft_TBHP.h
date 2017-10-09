@@ -33,7 +33,7 @@ int			forwardTBHP(string _origin, double _PDT, int _timeBuffer, int _mode){
 	double					tmpCurrentLabel, tmpEarliestArrival, tmpOldLabel, tmpNewLabel, tmpNewCost, tmpNonWalkLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
 	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpCurrentMode, tmpNewMode;
-	char					chr[99];
+	char					chr[999];
 	vector<string>			tokens;
 	list<taz*>::iterator	tmpTazListIter;
 	taz*					tmpTazPntr;
@@ -88,7 +88,7 @@ int			forwardTBHP(string _origin, double _PDT, int _timeBuffer, int _mode){
 	while(stopQueue.size()>0){
 		tmpStr = stopQueue.top();
 		stopQueue.pop();
-		tmpCurrentStop = tmpStr.substr(6,99);
+		tmpCurrentStop = tmpStr.substr(6,999);
 		tmpStopPntr = NULL;
 		tmpStopPntr = stopSet[tmpCurrentStop];
 		tmpCurrentLabel = tmpStopPntr->getStrategyLabel();
@@ -228,7 +228,7 @@ int			backwardTBHP(string _destination, double _PAT, int _timeBuffer, int _mode)
 	double					tmpCurrentLabel, tmpLatestDeparture, tmpEarliestDeparture, tmpOldLabel, tmpNewLabel, tmpNewCost, tmpNonWalkLabel;
 	double					tmpAccessTime, tmpTransferTime, tmpNewDeparture, tmpNewArrival, tmpInVehTime, tmpWaitingTime;
 	string					buf, tmpStr, tmpQueuvalue, tmpCurrentStop, tmpNewStop, tmpAccessibleTrips, tmpTrip, tmpCurrentMode, tmpNewMode;
-	char					chr[99];
+	char					chr[999];
 	vector<string>			tokens;
 	list<taz*>::iterator	tmpTazListIter;
 	taz*					tmpTazPntr;
@@ -282,7 +282,7 @@ int			backwardTBHP(string _destination, double _PAT, int _timeBuffer, int _mode)
 	while(stopQueue.size()>0){
 		tmpStr = stopQueue.top();
 		stopQueue.pop();
-		tmpCurrentStop = tmpStr.substr(6,99);
+		tmpCurrentStop = tmpStr.substr(6,999);
 		tmpStopPntr = NULL;
 		tmpStopPntr = stopSet[tmpCurrentStop];
 		tmpCurrentLabel = tmpStopPntr->getStrategyLabel();
@@ -423,7 +423,7 @@ string		getForwardElementaryPath(string _destination, double _PAT){
 	double				tmpDepartureTime, tmpStartTime, tmpEndTime;
 	string				buf, tmpBoardingStops, tmpAlightingStops, tmpTrips, tmpWalkingTimes, tmpPath;	
 	vector<string>		tokens;
-	char				chr[99];
+	char				chr[999];
 
 	tmpIn = tazSet[_destination]->getForwardAssignedAlternative(1800);
 	if(tmpIn=="-101"){
@@ -527,7 +527,7 @@ string		getBackwardElementaryPath(string _origin, double _PDT){
 	double				tmpArrivalTime, tmpStartTime, tmpDepartureTime;
 	string				buf, tmpBoardingStops, tmpAlightingStops, tmpTrips, tmpWalkingTimes, tmpPath;	
 	vector<string>		tokens;
-	char				chr[99];
+	char				chr[999];
 
 	tmpIn = tazSet[_origin]->getBackwardAssignedAlternative(0);
 	if(tmpIn=="-101"){
@@ -745,7 +745,7 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
 
     ofstream    logFile;
     logFile.open("ft_log.txt");
-    logFile <<"Started assignment at: "<<getTime()<<endl;
+    logFile <<"Started stochastic assignment at: "<<getTime()<<endl;
 
     ofstream	outFile;
     if(_printPassengersFlag==1){
@@ -828,7 +828,7 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
                     passengerPntr->addPaths(tmpPath);
                 }
             }
-		}else{
+		}else if(tmpTourHalf==2){
             tmpNumIterations = forwardTBHP(tmpOriginTaz, tmpPDT, _timeBuff, tmpMode);
             for (n=1;n<=1000;n++){
                 tmpPath = getForwardElementaryPath(tmpDestinationTaz, tmpPAT);
@@ -846,7 +846,7 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
         
         if(_printPassengersFlag==1){
             for(tmpPathSetIter=tmpPathSet.begin();tmpPathSetIter!=tmpPathSet.end();tmpPathSetIter++){
-                outFile <<tmpPassengerId.substr(1,99)<<"\t"<<tmpOriginTaz.substr(1,99)<<"\t"<<tmpDestinationTaz.substr(1,99)<<"\t"<<(*tmpPathSetIter).second<<"\t"<<(*tmpPathSetIter).first<<endl;
+                outFile <<tmpPassengerId.substr(1,999)<<"\t"<<tmpOriginTaz.substr(1,999)<<"\t"<<tmpDestinationTaz.substr(1,999)<<"\t"<<(*tmpPathSetIter).second<<"\t"<<(*tmpPathSetIter).first<<endl;
             }
         }
 
@@ -868,8 +868,10 @@ int		pathBasedStochasticAssignment(int _iter, int _timeBuff, int _printPassenger
 	}
     endTime = clock()*1.0/CLOCKS_PER_SEC;
     cpuTime = round(100 * (endTime - startTime))/100.0;
-    cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
-    logFile <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    //cout <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    //logFile <<k<<"\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    cout <<tmpNumPassengers<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
+    logFile <<tmpNumPassengers<<" ( "<<tmpNumPaths<<" )\t/\t"<<tmpNumPassengers<<"\tpassengers assigned;\ttime elapsed:\t"<<cpuTime<<"\tseconds"<<endl;
     if(_printPassengersFlag==1){
        outFile.close();
     }

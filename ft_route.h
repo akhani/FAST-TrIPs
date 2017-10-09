@@ -36,6 +36,7 @@ protected:
 	string						routeShortName;
 	string						routeLongName;
 	int							routeType;
+    double                      routeFare;
 	vector<string>				routeTrips;
 public:
 	route(){}
@@ -45,6 +46,7 @@ public:
 	int							getNumTrips();
 	string						getTripId(int _i);
 	int							getRouteType();
+    double                      getRouteFare();
 };
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 map<string,route*>				routeSet;
@@ -94,6 +96,11 @@ int		route::initializeRoute(string _tmpIn){
 	routeShortName = tokens[1];
 	routeLongName = tokens[2];
 	routeType = atoi(tokens[3].c_str());
+    if (tokens.size()>4){
+        routeFare = atof(tokens[4].c_str());
+    }else{
+        routeFare = -1.0;
+    }
 	return 0;
 }
 void	route::attachTrip(string _tripId){
@@ -107,4 +114,7 @@ string	route::getTripId(int _i){
 }
 int	route::getRouteType(){
 	return this->routeType;
+}
+double	route::getRouteFare(){
+	return this->routeFare;
 }

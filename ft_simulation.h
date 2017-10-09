@@ -22,6 +22,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -------------------------------------------------------*/
 
+//#include "ft_trip.h"
+
+
+//#include "ft_trip.h"
+
+
+//#include "ft_trip.h"
+
+
 using namespace std;
 
 int		initializeSimulatoin(){
@@ -142,7 +151,8 @@ int		alightPassengers(int _t, string _tripId, string _stopId){
 		for(tmpPassCntr=1;tmpPassCntr<=tmpNoOfOnBoardPassengers;tmpPassCntr++){
 			tmpPassengerId = tmpTripPntr->getPassengerId(tmpPassCntr-1);
 			tmpPassengerPntr = passengerSet[tmpPassengerId];
-			if(tmpPassengerPntr->getCurrentAlightingStopId()==_stopId){
+            //cout <<_tripId<<"\t"<<tmpNoOfOnBoardPassengers<<"\t"<<_stopId<<endl;
+            if(tmpPassengerPntr->getCurrentAlightingStopId()==_stopId){
 				//cout<<"\ttime: "<<_t/60.0<<" passenger "<<tmpPassengerId<<" got off at stop "<<_stopId<<"."<<endl;
 				tmpPassengerPntr->setPassengerStatus(1);	//walking
 				tmpPassengerPntr->increasePathIndex();
@@ -152,7 +162,20 @@ int		alightPassengers(int _t, string _tripId, string _stopId){
 				tmpTripPntr->removePassenger(tmpPassCntr-1);
 				tmpNoOfOnBoardPassengers = tmpTripPntr->getNoOfOnBoardPassengers();
 				tmpPassCntr = tmpPassCntr - 1;
-			}
+			}else if(tmpTripPntr->getStopIndex()==tmpTripPntr->getTripLength()-1){
+                // For Beijing Metro
+				//cout<<"\ttime: "<<_t/60.0<<" passenger "<<tmpPassengerId<<" got off at stop "<<_stopId<<"."<<endl;
+				tmpPassengerPntr->setPassengerStatus(2);	//waiting
+                stopSet[_stopId]->addPassenger(tmpPassengerId);
+				
+				//tmpPassengerPntr->decreasePathIndex();
+				//tmpPassengerPntr->addAlightingTime(_t/60.0);
+				//passengers2transfer.push_back(tmpPassengerPntr);
+				tmpNoOfAlightings = tmpNoOfAlightings + 1;
+				tmpTripPntr->removePassenger(tmpPassCntr-1);
+				tmpNoOfOnBoardPassengers = tmpTripPntr->getNoOfOnBoardPassengers();
+				tmpPassCntr = tmpPassCntr - 1;
+            }
 		}
 	}
 	tmpTripPntr->setAlightings(tmpNoOfAlightings);
@@ -161,9 +184,12 @@ int		alightPassengers(int _t, string _tripId, string _stopId){
 //////////////////////////////////////////////////////////////////////////////////////////////
 int		boardPassengers(int _t, string _tripId, string _stopId){
 
-	string			tmpPassengerId, tmpTripId;
+	string			tmpPassengerId, tmpTripId, tmpRouteId;
 	int				tmpPassCntr, tmpFreeCapacity, tmpNoOfOnBoardPassengers, tmpNoOfWaitingPassengers,
 					tmpNoOfBoardings, tmpNoOfMissings, tmpMissingCase;
+    //For Beijing Metro
+    string          tmpPassTripId, tmpPassRouteId;
+    trip*			tmpPassTripPntr;
 
 	//For Available Capacity Definition
 	string			fromToAt;
@@ -183,50 +209,61 @@ int		boardPassengers(int _t, string _tripId, string _stopId){
 	if(tmpNoOfWaitingPassengers > 0){
 
 		tmpTripId = tmpTripPntr->getTripId();
+        // Beijing Metro Simulation
+        tmpRouteId = tmpTripPntr->getRouteId();
 		tmpFreeCapacity = tmpTripPntr->getFreeCapacity();
 		for(tmpPassCntr=1;tmpPassCntr<=tmpNoOfWaitingPassengers;tmpPassCntr++){
 			tmpPassengerId = tmpStopPntr->getPassengerId(tmpPassCntr-1);
 			tmpPassengerPntr = passengerSet[tmpPassengerId];
-			if(tmpPassengerPntr->getCurrentTripId() == _tripId){
-				if(tmpFreeCapacity==0){
-					tmpMissingCase = 4;		//No space on the bus for the passenger to board!
-					tmpPassengerPntr->setPassengerStatus(4);	//missed
-					//cout <<"\tPassenger "<<tmpPassengerId<<" missed bus #"<<_tripId<<" at stop "<<_stopId<<" at time "<<_t/60.0<<"\tMC: "<<tmpMissingCase<<endl;
-					tmpNoOfMissings = tmpNoOfMissings + 1;
+//			if(tmpPassengerPntr->getCurrentTripId() == _tripId){
+            // Beijing Metro Simulation
+            tmpPassTripId = tmpPassengerPntr->getCurrentTripId();
+            //tmpPassTripPntr = tripSet[tmpPassTripId];
+            //tmpPassRouteId = tmpPassTripPntr->getRouteId();
+			if(tmpPassTripId == tmpRouteId){
+                //cout <<tmpTripPntr->getStopIndex()<<"\t"<<tmpTripPntr->getTripLength()-1<<"\t"<<"Passenger "<<tmpPassengerId<<"\tvehicle "<<tmpTripId<<endl;
+                if(tmpTripPntr->getStopIndex()!=tmpTripPntr->getTripLength()-1){
+                    if(tmpFreeCapacity==0){
+                        /*
+                        tmpMissingCase = 4;		//No space on the bus for the passenger to board!
+                        tmpPassengerPntr->setPassengerStatus(4);	//missed
+                        //cout <<"\tPassenger "<<tmpPassengerId<<" missed bus #"<<_tripId<<" at stop "<<_stopId<<" at time "<<_t/60.0<<"\tMC: "<<tmpMissingCase<<endl;
+                        tmpNoOfMissings = tmpNoOfMissings + 1;
 
-					fromToAt = tmpTripId + "," + _stopId;
-                    tmpArrivaltime = tmpPassengerPntr->getArrivalTime();
-					if(availableCapacity.find(fromToAt)==availableCapacity.end()){
-						availableCapacity[fromToAt] = tmpArrivaltime;
-					}else{
-						tmpLatestArrivalTime = availableCapacity[fromToAt];
-						if(tmpArrivaltime < tmpLatestArrivalTime){
-							availableCapacity[fromToAt] = tmpArrivaltime;
-						}
-					}
-                    
-                    fromToAt2 = tmpPassengerPntr->getLastTripId();
-                    if(fromToAt2=="Access"){
-                        fromToAt2 = fromToAt2 + "," + tmpTripId + "," + _stopId;
+                        fromToAt = tmpTripId + "," + _stopId;
+                        tmpArrivaltime = tmpPassengerPntr->getArrivalTime();
+                        if(availableCapacity.find(fromToAt)==availableCapacity.end()){
+                            availableCapacity[fromToAt] = tmpArrivaltime;
+                        }else{
+                            tmpLatestArrivalTime = availableCapacity[fromToAt];
+                            if(tmpArrivaltime < tmpLatestArrivalTime){
+                                availableCapacity[fromToAt] = tmpArrivaltime;
+                            }
+                        }
+
+                        fromToAt2 = tmpPassengerPntr->getLastTripId();
+                        if(fromToAt2=="Access"){
+                            fromToAt2 = fromToAt2 + "," + tmpTripId + "," + _stopId;
+                        }else{
+                            fromToAt2 = fromToAt2 + "," + tmpPassengerPntr->getLastAlightingStop();
+                            fromToAt2 = fromToAt2 + "," + tmpTripId + "," + _stopId;
+                        }
+                        if(availableCapacity2.find(fromToAt2)!=availableCapacity2.end()){
+                            availableCapacity2[fromToAt2]=0;
+                        } */
+
                     }else{
-                        fromToAt2 = fromToAt2 + "," + tmpPassengerPntr->getLastAlightingStop();
-                        fromToAt2 = fromToAt2 + "," + tmpTripId + "," + _stopId;
+                        tmpTripPntr->addPassenger(tmpPassengerId);
+                        tmpPassengerPntr->addBoardingTime(_t/60.0);
+                        tmpPassengerPntr->setPassengerStatus(3);	//on board
+                        //cout <<"\ttime: "<<_t/60.0<<"  Passenger "<<tmpPassengerId<<" got on the vehicle #"<<_tripId<<"."<<endl;
+                        tmpNoOfBoardings = tmpNoOfBoardings + 1;
+                        tmpFreeCapacity = tmpFreeCapacity - 1;
                     }
-                    if(availableCapacity2.find(fromToAt2)!=availableCapacity2.end()){
-                        availableCapacity2[fromToAt2]=0;
-                    }
-					
-				}else{
-					tmpTripPntr->addPassenger(tmpPassengerId);
-					tmpPassengerPntr->addBoardingTime(_t/60.0);
-					tmpPassengerPntr->setPassengerStatus(3);	//on board
-					//cout <<"\ttime: "<<_t/60.0<<"  Passenger "<<tmpPassengerId<<" got on the vehicle #"<<_tripId<<"."<<endl;
-					tmpNoOfBoardings = tmpNoOfBoardings + 1;
-					tmpFreeCapacity = tmpFreeCapacity - 1;
-				}
-				tmpStopPntr->removePassenger(tmpPassCntr-1);
-				tmpNoOfWaitingPassengers = tmpNoOfWaitingPassengers - 1;
-				tmpPassCntr = tmpPassCntr - 1;
+                    tmpStopPntr->removePassenger(tmpPassCntr-1);
+                    tmpNoOfWaitingPassengers = tmpNoOfWaitingPassengers - 1;
+                    tmpPassCntr = tmpPassCntr - 1;
+                }
 			}
 		}
 	}
@@ -267,32 +304,64 @@ int		calculateDwellTime(int _t, string _tripId, string _stopId){
 	return	tmpDwellTime;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
-int		simulation(){
-	int					counter, maxEvent, tmpOut, tmpEventTime, numAssignedPassengers, numArrivedPassengers, numMissedPassengers;
+int		simulation(int _pathModelFlag){
+	int					pintOutCounter, counter, maxEvent, tmpOut, tmpEventTime, tmpNextEventTime, numAssignedPassengers, numArrivedPassengers, numMissedPassengers;
 	string				buf, tmpEventStr, tmpEventTrip, tmpEventStop, tmpEventType;
     double              startTime, endTime, cpuTime;
-    char                chr[99];
+    char                chr[999];
 	vector<string>		tokens;
 	trip*				tripPntr;
+    list<string>::iterator  listIter;
 
         ofstream     logFile;
-        logFile.open("ft_log.txt", fstream::app);
-        logFile <<"Simulation started at:"<<getTime()<<endl;
+        if(_pathModelFlag==0){
+            logFile.open("ft_log.txt");
+        }else{
+            logFile.open("ft_log.txt", fstream::app);
+        }
+        logFile <<"Simulation started at: "<<getTime()<<endl;
 
 	numAssignedPassengers = initializeSimulatoin();
 	numArrivedPassengers = 0;
 	numMissedPassengers = 0;
 
     startTime = clock()*1.0/CLOCKS_PER_SEC;
-    tmpOut = createPassengers(0, 24*3600);
-    logFile <<tmpOut<<"passengers created"<<endl;
     maxEvent = eventList.size();
+    
+    pintOutCounter = 10000;
+    listIter = eventList.begin();
+    advance(listIter, pintOutCounter);
+    tmpEventStr = *listIter;
+    stringstream ss(tmpEventStr);
+    buf.clear();
+    tokens.clear();
+    while (getline(ss, buf, ',')){
+        tokens.push_back(buf);
+    }
+    tmpNextEventTime = atoi(tokens[0].c_str());
+    tmpOut = createPassengers(0, tmpNextEventTime);
+    endTime = clock()*1.0/CLOCKS_PER_SEC;
+    cpuTime = round(100 * (endTime - startTime))/100.0;
+    cout    <<"\t0"<<" / "<<maxEvent<<"\tevents simulated, simulated time: "<<"0:0"<<"\t,time elapsed (second): "<<cpuTime<<"\t,passengers created: "<<tmpOut<<endl;
+    logFile <<"\t0"<<" / "<<maxEvent<<"\tevents simulated, simulated time: "<<"0:0"<<"\t,time elapsed (second): "<<cpuTime<<"\t,passengers created: "<<tmpOut<<endl;
     for(counter=0;counter<maxEvent;counter++){
-        if (counter>0 && counter%10000==0){
+        if (counter>0 && counter%pintOutCounter==0){
+            listIter = eventList.begin();
+            advance(listIter, pintOutCounter);
+            tmpEventStr = *listIter;
+            stringstream ss(tmpEventStr);
+            buf.clear();
+            tokens.clear();
+            while (getline(ss, buf, ',')){
+                tokens.push_back(buf);
+            }
+            tmpNextEventTime = atoi(tokens[0].c_str());
+            tmpOut = createPassengers(tmpEventTime, tmpNextEventTime);
+            
             endTime = clock()*1.0/CLOCKS_PER_SEC;
             cpuTime = round(100 * (endTime - startTime))/100.0;
-            cout <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
-            logFile <<counter<<" / "<<maxEvent<<" events simulated ; "<<"time elapsed: "<<cpuTime<<"\tseconds"<<endl;
+            cout    <<counter<<" / "<<maxEvent<<"\tevents simulated, simulated time: "<<tmpEventTime/3600<<":"<<(tmpEventTime%3600)/60<<"\t,time elapsed (second): "<<cpuTime<<"\t,passengers created: "<<tmpOut<<endl;
+            logFile <<counter<<" / "<<maxEvent<<"\tevents simulated, simulated time: "<<tmpEventTime/3600<<":"<<(tmpEventTime%3600)/60<<"\t,time elapsed (second): "<<cpuTime<<"\t,passengers created: "<<tmpOut<<endl;
         }
         tmpEventStr = eventList.front();
         stringstream ss(tmpEventStr);
@@ -357,8 +426,8 @@ int		printLoadProfile(){
 			tmpBoardings = tmpTripPntr->getBoardings(i);
 			tmpAlightings = tmpTripPntr->getAlightings(i);
 			tmpVehLoad = tmpTripPntr->getVehLoad(i);
-            outFile1 <<tmpRouteId.substr(1,99)<<"\t"<<tmpShapeId<<"\t"<<tmpTripId.substr(1,99)<<"\t"<<tmpDirection<<"\t"
-                    <<tmpStopId.substr(1,99)<<"\t"<<i<<"\t"<<tmpDepartureTime<<"\t"<<tmpHeadway<<"\t"<<tmpDwellTime<<"\t"<<tmpBoardings<<"\t"<<tmpAlightings<<"\t"<<tmpVehLoad<<endl;
+            outFile1 <<tmpRouteId.substr(1,999)<<"\t"<<tmpShapeId<<"\t"<<tmpTripId.substr(1,999)<<"\t"<<tmpDirection<<"\t"
+                    <<tmpStopId.substr(1,999)<<"\t"<<i<<"\t"<<tmpDepartureTime<<"\t"<<tmpHeadway<<"\t"<<tmpDwellTime<<"\t"<<tmpBoardings<<"\t"<<tmpAlightings<<"\t"<<tmpVehLoad<<endl;
             tmpNumStopTimes++;
             }
 	}
@@ -386,7 +455,7 @@ int		printPassengerPaths(){
 		tmpDestinationTaz = passengerPntr->getDestinationTAZ();
 		tmpPath = passengerPntr->getAssignedPath();
 		if(tmpPath!=""){
-			outFile2 <<tmpPassengerId.substr(1,99)<<"\t"<<tmpMode<<"\t"<<tmpOriginTaz.substr(1,99)<<"\t"<<tmpDestinationTaz.substr(1,99)<<"\t"<<tmpPath<<endl;
+			outFile2 <<tmpPassengerId.substr(1,999)<<"\t"<<tmpMode<<"\t"<<tmpOriginTaz.substr(1,999)<<"\t"<<tmpDestinationTaz.substr(1,999)<<"\t"<<tmpPath<<endl;
 			noOfPassengers++;
 		}
 	}
@@ -445,7 +514,7 @@ int		printPaths(){
 			tmpAccessTime = passengerPntr->getAccessTime();
 			tmpEgressTime = passengerPntr->getEgressTime();
 			noOfTransfers = passengerPntr->getNumUnlinkedTrips()-1;
-			outFile4 <<tmpPassengerId.substr(1,99)<<"\t"<<floor(100*tmpStartTime)/100.0<<"\t"<<floor(100*tmpEndTime)/100.0<<"\t"<<noOfTransfers<<"\t"<<floor(100*tmpAccessTime)/100.0<<"\t"<<floor(100*tmpEgressTime)/100.0<<endl;
+			outFile4 <<tmpPassengerId.substr(1,999)<<"\t"<<floor(100*tmpStartTime)/100.0<<"\t"<<floor(100*tmpEndTime)/100.0<<"\t"<<noOfTransfers<<"\t"<<floor(100*tmpAccessTime)/100.0<<"\t"<<floor(100*tmpEgressTime)/100.0<<endl;
 			noOfPassengers++;
 		}
 	}
